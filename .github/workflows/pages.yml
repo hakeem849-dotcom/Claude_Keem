@@ -1,10 +1,9 @@
 name: Deploy PharmaDesk to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-      - claude/pharmacist-mock-app-yn5bx7
+  # Manual-only: GitHub Pages requires a public repo (or a paid plan for
+  # private repos). When ready, make the repo public and run this from the
+  # Actions tab → "Run workflow", or add the push trigger back.
   workflow_dispatch:
 
 permissions:
