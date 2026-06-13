@@ -207,6 +207,8 @@ Views.dashboard = () => {
           <dt>Active patients</dt><dd>${Store.patients.length}</dd>
           <dt>Formulary items</dt><dd>${Store.inventory.length}</dd>
           <dt>Controlled scripts (mo.)</dt><dd>${dispensedThisMonth.filter(r => Store.findDrug(r.drugId)?.schedule > 0).length} dispensed</dd>
+          <dt>Rejected claims</dt><dd>${Store.claims.filter(c => c.status === "rejected").length} to resolve</dd>
+          <dt>Open MTM tasks</dt><dd>${Store.mtmTasks.filter(t => !t.done).length}</dd>
           <dt>Immunizations on file</dt><dd>${Store.immunizations.length}</dd>
         </dl>
       </div>
@@ -689,6 +691,146 @@ Views.reports = () => {
     </div>`;
 };
 
+/* ---------- Claims & billing ---------- */
+Views.claims = () => {
+  const claims = Store.claims;
+  const billed = claims.reduce((s, c) => s + c.billed, 0);
+  const paid = claims.reduce((s, c) => s + c.paid, 0);
+  const copay = claims.reduce((s, c) => s + c.copay, 0);
+  const rejected = claims.filter(c => c.status === "rejected").length;
+  const rows = claims.map(c => {
+    const rx = Store.prescriptions.find(r => r.id === c.rxId);
+    const p = rx ? Store.findPatient(rx.patientId) : null;
+    const d = rx ? Store.findDrug(rx.drugId) : null;
+    const badge = c.status === "paid" ? "green" : c.status === "rejected" ? "red" : "gray";
+    return `<tr>
+      <td><b>${c.id}</b><div class="muted small">${c.rxId}</div></td>
+      <td>${p ? p.first + " " + p.last : "—"}<div class="muted small">${d ? d.name + " " + d.strength : ""}</div></td>
+      <td>${c.payer}<div class="muted small">BIN ${c.bin} · PCN ${c.pcn}</div></td>
+      <td>${money(c.billed)}</td>
+      <td>${money(c.paid)}</td>
+      <td>${money(c.copay)}</td>
+      <td><span class="badge ${badge}">${c.status}</span>${c.rejectCode ? `<div class="small" style="color:var(--danger)">${escapeHtml(c.rejectCode)}</div>` : ""}</td>
+      <td style="text-align:right">${c.status === "rejected" ? `<button class="btn sm primary" data-readjudicate="${c.id}">Re-adjudicate</button>` : ""}</td>
+    </tr>`;
+  }).join("");
+  return `
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+      ${statCard("Total billed", money(billed), "💳", `${claims.length} claims`, "blue")}
+      ${statCard("Plan paid", money(paid), "🏦", "third-party reimbursement", "green")}
+      ${statCard("Patient copay", money(copay), "👛", "collected at counter", "gray")}
+      ${statCard("Rejections", rejected, "🚫", rejected ? "needs resolution" : "all clear", rejected ? "red" : "green")}
+    </div>
+    <div class="card">
+      <div class="section-head"><h2>Third-party claim adjudication</h2></div>
+      <div class="alert info" style="margin-bottom:14px"><span>ℹ️</span>
+        <div>Each dispensed claim is adjudicated against the patient's plan (BIN/PCN). Rejected claims show the
+        NCPDP reject code — resolve a prior-auth or formulary issue and re-adjudicate to get the claim paid.</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Claim</th><th>Patient / Drug</th><th>Payer</th><th>Billed</th><th>Paid</th><th>Copay</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+};
+
+function readjudicate(claimId) {
+  const c = Store.claims.find(x => x.id === claimId);
+  if (!c) return;
+  // simulate a successful resolution: plan now pays ~72% with a copay
+  c.paid = +(c.billed * 0.72).toFixed(2);
+  c.copay = +(c.billed - c.paid).toFixed(2);
+  c.status = "paid";
+  c.rejectCode = "";
+  Store.commit();
+  toast(`${c.id} re-adjudicated — paid ${money(c.paid)}`);
+  render();
+}
+
+/* ---------- Refills & adherence (MTM) ---------- */
+function addDays(dateStr, n) {
+  const d = new Date(dateStr); d.setDate(d.getDate() + n); return d;
+}
+Views.refills = () => {
+  // refills due: dispensed maintenance meds with refills remaining
+  const due = Store.prescriptions
+    .filter(r => r.status === "dispensed" && r.refills > 0 && r.dispensedOn)
+    .map(r => {
+      const next = addDays(r.dispensedOn, r.daysSupply);
+      return { r, next, days: Math.round((next - TODAY) / 86400000) };
+    })
+    .sort((a, b) => a.days - b.days);
+
+  // adherence per patient (avg PDC across maintenance meds with a pdc value)
+  const byPatient = {};
+  Store.prescriptions.filter(r => r.pdc != null).forEach(r => {
+    (byPatient[r.patientId] = byPatient[r.patientId] || []).push(r.pdc);
+  });
+  const adherence = Object.entries(byPatient).map(([pid, arr]) => ({
+    p: Store.findPatient(pid), pdc: arr.reduce((s, x) => s + x, 0) / arr.length
+  })).sort((a, b) => a.pdc - b.pdc);
+
+  const pdcBadge = v => v >= 0.8 ? "green" : v >= 0.6 ? "amber" : "red";
+
+  return `
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-head"><h2>Refills due</h2></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Patient</th><th>Drug</th><th>Due</th><th>Refills</th><th></th></tr></thead>
+          <tbody>${due.map(({ r, next, days }) => {
+            const p = Store.findPatient(r.patientId), d = Store.findDrug(r.drugId);
+            const badge = days < 0 ? "red" : days <= 7 ? "amber" : "gray";
+            const lbl = days < 0 ? `${-days}d overdue` : days === 0 ? "today" : `in ${days}d`;
+            return `<tr><td>${p.first} ${p.last}<div class="muted small">${p.phone}</div></td>
+              <td>${d.name} ${d.strength}</td>
+              <td>${fmtDate(next)} <span class="badge ${badge}">${lbl}</span></td>
+              <td>${r.refills}</td>
+              <td style="text-align:right"><button class="btn sm" data-remind="${r.id}">Send reminder</button></td></tr>`;
+          }).join("") || `<tr><td colspan="5" class="empty">No refills due.</td></tr>`}</tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="section-head"><h2>Medication adherence (PDC)</h2></div>
+        <p class="muted small">Proportion of Days Covered across maintenance medications. Below 80% is a quality-measure gap.</p>
+        ${adherence.map(({ p, pdc }) => `<div style="margin:12px 0">
+          <div class="spread"><span>${p.first} ${p.last}</span>
+            <span class="badge ${pdcBadge(pdc)}">${Math.round(pdc * 100)}% PDC</span></div>
+          <div class="progress" style="margin-top:4px"><span style="width:${Math.round(pdc * 100)}%;background:var(--${pdc >= 0.8 ? 'ok' : pdc >= 0.6 ? 'warn' : 'danger'})"></span></div>
+        </div>`).join("")}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-head"><h2>MTM &amp; counseling tasks</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Task</th><th>Patient</th><th>Due</th><th>Note</th><th>Status</th><th></th></tr></thead>
+        <tbody>${Store.mtmTasks.map(t => {
+          const p = Store.findPatient(t.patientId);
+          const overdue = !t.done && daysUntil(t.due) < 0;
+          return `<tr>
+            <td><b>${t.type}</b><div class="muted small">${t.id}</div></td>
+            <td>${p.first} ${p.last}</td>
+            <td>${fmtDate(t.due)}${overdue ? ` <span class="badge red">overdue</span>` : ""}</td>
+            <td class="small">${escapeHtml(t.note)}</td>
+            <td>${t.done ? `<span class="badge green">done</span>` : `<span class="badge gray">open</span>`}</td>
+            <td style="text-align:right">${t.done ? "" : `<button class="btn sm primary" data-mtm="${t.id}">Mark complete</button>`}</td></tr>`;
+        }).join("")}</tbody>
+      </table></div>
+    </div>`;
+};
+
+function sendReminder(rxId) {
+  const rx = Store.prescriptions.find(r => r.id === rxId);
+  const p = Store.findPatient(rx.patientId), d = Store.findDrug(rx.drugId);
+  toast(`Refill reminder sent to ${p.first} ${p.last} for ${d.name}`);
+}
+function completeMtm(id) {
+  const t = Store.mtmTasks.find(x => x.id === id);
+  if (!t) return;
+  t.done = true; Store.commit();
+  toast("MTM task marked complete");
+  render();
+}
+
 /* ============================================================
    Router & event wiring
    ============================================================ */
@@ -734,6 +876,11 @@ function wireView() {
   };
   // immunizations
   if ($("#newImm")) $("#newImm").onclick = newImmForm;
+  // claims & billing
+  $$("[data-readjudicate]").forEach(b => b.onclick = () => readjudicate(b.dataset.readjudicate));
+  // refills & adherence
+  $$("[data-remind]").forEach(b => b.onclick = () => sendReminder(b.dataset.remind));
+  $$("[data-mtm]").forEach(b => b.onclick = () => completeMtm(b.dataset.mtm));
 }
 
 function restoreFocus(id, val) {

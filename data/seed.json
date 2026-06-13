@@ -31,9 +31,26 @@
     { "id": "RX-50236", "patientId": "P-1002", "drugId": "D-003", "sig": "Take 1 tablet by mouth at bedtime", "qty": 30, "daysSupply": 30, "refills": 5, "prescriber": "Dr. S. Webb", "written": "2026-06-08", "status": "ready" },
     { "id": "RX-50237", "patientId": "P-1005", "drugId": "D-007", "sig": "Take 1 tablet by mouth every morning", "qty": 30, "daysSupply": 30, "refills": 2, "prescriber": "Dr. J. Field", "written": "2026-06-05", "status": "intake" },
     { "id": "RX-50238", "patientId": "P-1005", "drugId": "D-012", "sig": "Take 1 tablet at onset of migraine, may repeat after 2h", "qty": 9, "daysSupply": 30, "refills": 1, "prescriber": "Dr. J. Field", "written": "2026-06-05", "status": "intake" },
-    { "id": "RX-50220", "patientId": "P-1002", "drugId": "D-010", "sig": "Take 1 capsule by mouth before breakfast", "qty": 30, "daysSupply": 30, "refills": 0, "prescriber": "Dr. S. Webb", "written": "2026-05-10", "status": "dispensed", "dispensedOn": "2026-05-11" },
-    { "id": "RX-50221", "patientId": "P-1006", "drugId": "D-009", "sig": "Take 1 tablet by mouth at bedtime as needed", "qty": 30, "daysSupply": 30, "refills": 1, "prescriber": "Dr. R. Diaz", "written": "2026-05-20", "status": "dispensed", "dispensedOn": "2026-05-21" },
-    { "id": "RX-50222", "patientId": "P-1001", "drugId": "D-004", "sig": "Take 1 capsule by mouth three times daily for 10 days", "qty": 30, "daysSupply": 10, "refills": 0, "prescriber": "Dr. A. Patel", "written": "2026-05-28", "status": "dispensed", "dispensedOn": "2026-05-28" }
+    { "id": "RX-50220", "patientId": "P-1002", "drugId": "D-010", "sig": "Take 1 capsule by mouth before breakfast", "qty": 30, "daysSupply": 30, "refills": 0, "prescriber": "Dr. S. Webb", "written": "2026-05-10", "status": "dispensed", "dispensedOn": "2026-05-11", "maintenance": true, "pdc": 0.91 },
+    { "id": "RX-50221", "patientId": "P-1006", "drugId": "D-009", "sig": "Take 1 tablet by mouth at bedtime as needed", "qty": 30, "daysSupply": 30, "refills": 1, "prescriber": "Dr. R. Diaz", "written": "2026-05-20", "status": "dispensed", "dispensedOn": "2026-05-21", "maintenance": false, "pdc": 0.78 },
+    { "id": "RX-50222", "patientId": "P-1001", "drugId": "D-004", "sig": "Take 1 capsule by mouth three times daily for 10 days", "qty": 30, "daysSupply": 10, "refills": 0, "prescriber": "Dr. A. Patel", "written": "2026-05-28", "status": "dispensed", "dispensedOn": "2026-05-28", "maintenance": false },
+    { "id": "RX-50210", "patientId": "P-1001", "drugId": "D-001", "sig": "Take 1 tablet by mouth daily", "qty": 30, "daysSupply": 30, "refills": 10, "prescriber": "Dr. A. Patel", "written": "2026-04-28", "status": "dispensed", "dispensedOn": "2026-04-29", "maintenance": true, "pdc": 0.62 },
+    { "id": "RX-50211", "patientId": "P-1004", "drugId": "D-005", "sig": "Take 1 tablet by mouth daily as directed", "qty": 30, "daysSupply": 30, "refills": 4, "prescriber": "Dr. K. Nguyen", "written": "2026-05-08", "status": "dispensed", "dispensedOn": "2026-05-09", "maintenance": true, "pdc": 0.95 },
+    { "id": "RX-50212", "patientId": "P-1002", "drugId": "D-003", "sig": "Take 1 tablet by mouth at bedtime", "qty": 30, "daysSupply": 30, "refills": 6, "prescriber": "Dr. S. Webb", "written": "2026-05-06", "status": "dispensed", "dispensedOn": "2026-05-07", "maintenance": true, "pdc": 0.88 }
+  ],
+  "claims": [
+    { "id": "CLM-9001", "rxId": "RX-50220", "payer": "BlueCross PPO", "bin": "610502", "pcn": "BCBSRX", "billed": 12.60, "paid": 9.10, "copay": 3.50, "status": "paid", "rejectCode": "" },
+    { "id": "CLM-9002", "rxId": "RX-50221", "payer": "Cigna PPO", "bin": "017010", "pcn": "CIGRX", "billed": 18.00, "paid": 13.00, "copay": 5.00, "status": "paid", "rejectCode": "" },
+    { "id": "CLM-9003", "rxId": "RX-50222", "payer": "Medicare Part D — Humana", "bin": "610649", "pcn": "HUMRX", "billed": 18.00, "paid": 0, "copay": 0, "status": "rejected", "rejectCode": "75 — Prior authorization required" },
+    { "id": "CLM-9004", "rxId": "RX-50210", "payer": "Medicare Part D — Humana", "bin": "610649", "pcn": "HUMRX", "billed": 9.00, "paid": 7.00, "copay": 2.00, "status": "paid", "rejectCode": "" },
+    { "id": "CLM-9005", "rxId": "RX-50211", "payer": "Medicare Part D — WellCare", "bin": "603286", "pcn": "WCRX", "billed": 12.25, "paid": 0, "copay": 0, "status": "rejected", "rejectCode": "70 — Product not covered (non-formulary)" },
+    { "id": "CLM-9006", "rxId": "RX-50212", "payer": "BlueCross PPO", "bin": "610502", "pcn": "BCBSRX", "billed": 9.90, "paid": 6.90, "copay": 3.00, "status": "paid", "rejectCode": "" }
+  ],
+  "mtmTasks": [
+    { "id": "MTM-301", "patientId": "P-1001", "type": "Comprehensive Medication Review", "due": "2026-06-20", "note": "Annual CMR — diabetes + hypertension polypharmacy.", "done": false },
+    { "id": "MTM-302", "patientId": "P-1004", "type": "New therapy counseling", "due": "2026-06-15", "note": "Warfarin — diet/INR education, bleeding precautions.", "done": false },
+    { "id": "MTM-303", "patientId": "P-1003", "type": "Device technique", "due": "2026-06-18", "note": "Albuterol inhaler technique check.", "done": false },
+    { "id": "MTM-304", "patientId": "P-1006", "type": "Opioid safety counseling", "due": "2026-06-14", "note": "Offer naloxone; review benzodiazepine co-use risk.", "done": false }
   ],
   "immunizations": [
     { "id": "IZ-7001", "patientId": "P-1001", "vaccine": "Influenza (quadrivalent)", "date": "2025-10-04", "lot": "FLU2025-A", "site": "L deltoid" },
