@@ -203,8 +203,37 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); bor
 
 @media (max-width: 1000px) {
   #app { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; }
-  .nav { flex-direction: row; flex-wrap: wrap; }
+  .main { padding-bottom: 78px; } /* clear the fixed bottom nav */
+
+  /* Sidebar becomes a fixed bottom tab bar on phones/tablets */
+  .sidebar {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto; height: auto;
+    flex-direction: row; padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    z-index: 30; box-shadow: 0 -6px 18px rgba(0,0,0,.18);
+  }
+  .brand, .sidebar-foot { display: none; }
+  .nav {
+    flex-direction: row; flex: 1; gap: 4px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-item {
+    flex: 0 0 auto; flex-direction: column; align-items: center; gap: 3px;
+    min-width: 66px; padding: 7px 8px; font-size: 10px; line-height: 1.1; text-align: center;
+  }
+  .ni-ico { font-size: 19px; width: auto; }
+
+  .topbar { padding: 12px 16px; position: sticky; }
+  .user-chip .user-meta { display: none; }
+  .search { width: 100%; max-width: 200px; }
+  .view { padding: 16px; }
   .stats, .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .search { width: 160px; }
+  .stats { gap: 12px; }
+  .modal, .modal.lg { max-width: 100%; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .topbar h1 { font-size: 17px; }
+  .stat .value { font-size: 24px; }
 }

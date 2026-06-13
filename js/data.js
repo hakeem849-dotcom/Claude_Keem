@@ -163,18 +163,34 @@ const SEED = {
   ]
 };
 
-/* ---------- Storage layer ---------- */
+/* ---------- Storage layer ----------
+   Persists to localStorage when available, with an in-memory fallback so the
+   app still works when opened from a file:// URL or in private mode (some
+   browsers throw on localStorage access in those contexts). */
 const Store = (() => {
   const KEY = "pharmadesk.v1";
 
+  const hasLS = (() => {
+    try { const k = "__pd_test"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; }
+    catch (e) { console.warn("localStorage unavailable — using in-memory store", e); return false; }
+  })();
+  let memory = null; // in-memory fallback
+
   function load() {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) { console.warn("Load failed, seeding fresh", e); }
+    if (hasLS) {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) { console.warn("Load failed, seeding fresh", e); }
+    } else if (memory) {
+      return memory;
+    }
     return reset();
   }
-  function save(state) { localStorage.setItem(KEY, JSON.stringify(state)); }
+  function save(state) {
+    memory = state;
+    if (hasLS) { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* keep memory copy */ } }
+  }
   function reset() {
     const fresh = JSON.parse(JSON.stringify(SEED));
     save(fresh);

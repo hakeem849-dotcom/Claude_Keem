@@ -916,5 +916,13 @@ function wireChrome() {
 }
 
 /* boot */
-wireChrome();
-render();
+try {
+  wireChrome();
+  render();
+} catch (err) {
+  console.error("PharmaDesk failed to start", err);
+  const v = document.getElementById("view");
+  if (v) v.innerHTML = `<div class="alert red"><span>🛑</span><div>
+    <b>The app failed to start.</b><div class="small">${String(err && err.message || err)}</div>
+    <div class="small">Try the "Reset demo data" button, or reload the page.</div></div></div>`;
+}
