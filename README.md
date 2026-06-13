@@ -17,6 +17,8 @@ build step, no dependencies — just open the file in a browser.
 | **Patients** | Patient charts: demographics, conditions, allergies, full medication profile, and per-patient clinical alerts |
 | **Inventory** | Formulary & stock levels, reorder-point alerts, expiry tracking, receiving stock, and inventory valuation |
 | **Interaction Checker** | Drug Utilization Review — screen a patient's whole profile or run an ad-hoc multi-drug check against an interaction knowledge base; allergy cross-checks |
+| **Claims & Billing** | Third-party claim adjudication (BIN/PCN, billed/paid/copay), NCPDP reject codes, and re-adjudication of rejected claims |
+| **Refills & Adherence** | Refill-due tracking with reminders, medication adherence (PDC) scoring, and an MTM / patient-counseling task list |
 | **Controlled Log** | Perpetual inventory + dispensing register for DEA C-II through C-V scheduled drugs |
 | **Immunizations** | Record and review vaccine administrations (vaccine, lot, site, date) |
 | **Business Reports** | Revenue, cost of goods, gross margin, top medications, and payer mix |
