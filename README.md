@@ -39,7 +39,23 @@ xdg-open index.html        # Linux
 # Option 2 — serve locally (any static server works)
 python3 -m http.server 8000
 # then visit http://localhost:8000
+
+# Option 3 — single self-contained file (no folder needed)
+# open dist/pharmadesk.html directly in any browser (works offline)
 ```
+
+## Mobile / installable app (PWA)
+
+PharmaDesk is a **Progressive Web App** — when served over HTTPS it can be
+installed to a phone's home screen and launches full-screen like a native app,
+with offline support via a service worker.
+
+- On phones the navigation becomes a fixed bottom tab bar.
+- To install: open the hosted URL on your phone → browser menu →
+  **"Add to Home Screen"** (iOS Safari) / **"Install app"** (Android Chrome).
+- A GitHub Actions workflow (`.github/workflows/pages.yml`) publishes the app to
+  **GitHub Pages** at `https://<owner>.github.io/<repo>/`. PWA install requires
+  HTTPS, so use the hosted URL (not `file://`) to install on a device.
 
 ## Data
 
