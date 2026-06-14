@@ -164,24 +164,29 @@ Views.dashboard = () => {
         <h2 class="hero-title">K. Adeyemi, PharmD</h2>
         <p class="hero-sub">${fmtDate(TODAY)} · ${queue.length} in queue · ${ready} ready for pickup · ${alerts.length} clinical alert${alerts.length === 1 ? "" : "s"}</p>
       </div>
+      <div class="hero-chips">
+        <span class="hero-chip">Net after DIR · <b>${(netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir))}</b></span>
+        <span class="hero-chip">Underwater · <b>${underwater.length}</b></span>
+        <span class="hero-chip">Audit risk · <b>${money(auditAtRisk)}</b></span>
+      </div>
       <div class="hero-actions">
         <button class="btn ghost" data-go="prescriptions">Open queue</button>
         <button class="btn light" data-go="reportcenter">Report Center</button>
       </div>
     </div>
     <div class="stats">
-      ${statCard("Rx in queue", queue.length, "℞", `${ready} ready for pickup`, "green")}
-      ${statCard("Low stock items", lowStock.length, "📦", lowStock.length ? "Reorder needed" : "Stock healthy", lowStock.length ? "amber" : "green")}
-      ${statCard("Clinical alerts", alerts.length, "⚠️", "Interactions & allergies", alerts.length ? "red" : "green")}
-      ${statCard("Revenue (dispensed)", money(revenue), "💵", `${dispensedThisMonth.length} scripts`, "blue")}
+      ${statCard("Rx in queue", queue.length, "℞", `${ready} ready for pickup`, "green", null, [6, 7, 5, 8, 7, 9, 8])}
+      ${statCard("Low stock items", lowStock.length, "📦", lowStock.length ? "Reorder needed" : "Stock healthy", lowStock.length ? "amber" : "green", "inventory", [5, 4, 4, 3, 2, 2])}
+      ${statCard("Clinical alerts", alerts.length, "⚠️", "Interactions & allergies", alerts.length ? "red" : "green", "interactions", [2, 3, 2, 4, 3, 3])}
+      ${statCard("Revenue (dispensed)", money(revenue), "💵", `${dispensedThisMonth.length} scripts`, "blue", "reports", [30, 38, 42, 40, 46, 50])}
     </div>
 
     <div class="section-head"><h2 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Business health · survival signals</h2></div>
     <div class="stats">
-      ${statCard("Net after cost + DIR", (netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir)), "💸", `${money(dirTotal)} DIR drag`, netAfterDir >= 0 ? "green" : "red", "reimbursement")}
-      ${statCard("Underwater claims", underwater.length, "🔻", "dispensed below cost", underwater.length ? "red" : "green", "reimbursement")}
-      ${statCard("$ at risk in audits", money(auditAtRisk), "📋", `${openAudits.length} open audit(s)`, auditAtRisk ? "amber" : "green", "audits")}
-      ${statCard("Compliance due ≤60d", credSoon.length, "📂", credExpired.length ? `${credExpired.length} expired!` : "renewals", credExpired.length ? "red" : credSoon.length ? "amber" : "green", "compliance")}
+      ${statCard("Net after cost + DIR", (netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir)), "💸", `${money(dirTotal)} DIR drag`, netAfterDir >= 0 ? "green" : "red", "reimbursement", [27, 24, 20, 18, 16, 15])}
+      ${statCard("Underwater claims", underwater.length, "🔻", "dispensed below cost", underwater.length ? "red" : "green", "reimbursement", [1, 1, 2, 1, 2, 2])}
+      ${statCard("$ at risk in audits", money(auditAtRisk), "📋", `${openAudits.length} open audit(s)`, auditAtRisk ? "amber" : "green", "audits", [12, 14, 18, 20, 22, 23])}
+      ${statCard("Compliance due ≤60d", credSoon.length, "📂", credExpired.length ? `${credExpired.length} expired!` : "renewals", credExpired.length ? "red" : credSoon.length ? "amber" : "green", "compliance", [1, 2, 2, 3, 3, 3])}
     </div>
 
     <div class="grid-2">
@@ -251,12 +256,64 @@ Views.dashboard = () => {
     </div>`;
 };
 
-function statCard(label, value, ico, delta, color, goView) {
+function statCard(label, value, ico, delta, color, goView, spark) {
   const attrs = goView ? ` data-go="${goView}" role="button" tabindex="0" title="Open ${goView}"` : "";
   return `<div class="stat${goView ? " clickable" : ""}"${attrs}><span class="ico">${ico}</span>
     <div class="label">${label}</div>
     <div class="value">${value}</div>
-    <div class="delta"><span class="badge ${color}">${delta}</span></div></div>`;
+    <div class="delta"><span class="badge ${color}">${delta}</span></div>
+    ${spark ? `<div class="spark-wrap">${sparkline(spark, color)}</div>` : ""}</div>`;
+}
+
+const SPARK_STROKE = { green: "var(--ok)", red: "var(--danger)", amber: "var(--warn)", blue: "var(--accent)", purple: "#6635c9", gray: "var(--muted)" };
+function sparkline(data, color) {
+  if (!data || data.length < 2) return "";
+  const w = 120, h = 28, min = Math.min(...data), max = Math.max(...data), rng = (max - min) || 1;
+  const pts = data.map((v, i) => `${(i / (data.length - 1) * w).toFixed(1)},${(h - ((v - min) / rng) * h).toFixed(1)}`);
+  const stroke = SPARK_STROKE[color] || "var(--brand)";
+  const area = `0,${h} ` + pts.join(" ") + ` ${w},${h}`;
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" width="100%" height="28" aria-hidden="true">
+    <polygon points="${area}" fill="${stroke}" opacity="0.08"/>
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// Count-up animation for KPI values (respects reduced-motion). Parses prefix
+// (e.g. "$", "−$"), the number, and suffix (e.g. "%") from the final text.
+function animateCounts(root) {
+  if (!root) return;
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) return;
+  root.querySelectorAll(".stat .value").forEach(el => {
+    const final = el.textContent.trim();
+    const m = final.match(/^([^\d]*)([\d,]*\.?\d+)(.*)$/);
+    if (!m) return;
+    const prefix = m[1], suffix = m[3];
+    const decimals = (m[2].split(".")[1] || "").length;
+    const target = parseFloat(m[2].replace(/,/g, ""));
+    if (!isFinite(target)) return;
+    const dur = 650, t0 = performance.now();
+    function tick(t) {
+      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = prefix + (target * e).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + suffix;
+      if (p < 1) requestAnimationFrame(tick); else el.textContent = final;
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+/* theme */
+const THEME_KEY = "pharmadesk.theme";
+function getTheme() { try { return localStorage.getItem(THEME_KEY) || "light"; } catch (e) { return "light"; } }
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  const b = document.getElementById("themeToggle");
+  if (b) b.textContent = t === "dark" ? "☀️" : "🌙";
+}
+function toggleTheme() {
+  const t = getTheme() === "dark" ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+  applyTheme(t);
 }
 
 /* ---------- Prescriptions / Dispensing queue ---------- */
@@ -1485,6 +1542,7 @@ function render() {
   $("#view").innerHTML = Views[currentView]();
   $("#viewTitle").textContent = $(`.nav-item[data-view="${currentView}"]`).textContent.trim();
   wireView();
+  animateCounts($("#view"));
 }
 
 function wireView() {
@@ -1559,6 +1617,8 @@ function navigate(view) {
 
 /* global search → jump to relevant view */
 function wireChrome() {
+  applyTheme(getTheme());
+  const tt = $("#themeToggle"); if (tt) tt.onclick = toggleTheme;
   $$(".nav-item").forEach(n => n.onclick = () => navigate(n.dataset.view));
   $("#resetData").onclick = () => {
     if (confirm("Restore all demo data to its original state? This clears your changes.")) {

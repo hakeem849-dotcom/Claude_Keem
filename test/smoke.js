@@ -43,10 +43,11 @@ let failures = 0;
     querySelector() { return el(); }, querySelectorAll() { return []; }
   });
   global.document = {
+    documentElement: { setAttribute() {}, getAttribute() { return null; } },
     querySelector: () => el(), querySelectorAll: () => [],
     getElementById: () => el(), addEventListener: () => {}, createElement: () => el()
   };
-  global.window = { addEventListener: () => {} };
+  global.window = { addEventListener: () => {}, matchMedia: () => ({ matches: false }) };
   global.confirm = () => true;
 
   const { Views, REPORTS, buildPacket } = new Function(

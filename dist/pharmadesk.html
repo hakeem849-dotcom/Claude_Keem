@@ -182,8 +182,23 @@ body {
 .btn.ghost:hover { background: rgba(255,255,255,.2); }
 .btn.light { background: #fff; color: var(--brand-d); border-color: #fff; }
 .btn.light:hover { background: #eafff9; }
+.hero-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; position: relative; z-index: 1; }
+.hero-chip { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.18); color: #eafff9;
+  padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; backdrop-filter: blur(4px); }
+.hero-chip b { font-weight: 700; }
 
 .build-tag { font-size: 10.5px; color: #5f9a8f; letter-spacing: .04em; margin-top: 8px; }
+
+/* topbar icon button (theme toggle) */
+.icon-btn { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line);
+  background: var(--soft); cursor: pointer; font-size: 16px; display: grid; place-items: center;
+  transition: background .14s, border-color .14s, transform .05s; }
+.icon-btn:hover { background: var(--brand-wash); border-color: #d8dee2; }
+.icon-btn:active { transform: scale(.94); }
+
+/* KPI sparklines */
+.spark-wrap { margin-top: 12px; height: 28px; opacity: .85; }
+.spark { display: block; }
 
 /* ---------- Stat cards ---------- */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
@@ -369,6 +384,52 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
   .card { box-shadow: none; border-color: #ccc; }
 }
 
+/* ============================================================
+   Dark theme
+   ============================================================ */
+html[data-theme="dark"] {
+  --ink: #e9f2f0;
+  --ink-2: #b4c6c4;
+  --muted: #8aa0a0;
+  --line: #233039;
+  --line-2: #1c2830;
+  --bg: #0b1417;
+  --panel: #121e23;
+  --soft: #0f1a1f;
+  --brand-wash: #11332e;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 1px 2px rgba(0,0,0,.4), 0 12px 30px -14px rgba(0,0,0,.7);
+  --shadow-lg: 0 28px 70px -20px rgba(0,0,0,.8);
+}
+html[data-theme="dark"] body { background: radial-gradient(120% 80% at 100% 0%, rgba(20,160,138,.08), transparent 55%), var(--bg); }
+html[data-theme="dark"] .topbar { background: rgba(15,26,31,.82); }
+html[data-theme="dark"] .stat.clickable:hover { border-color: #2c4a44; }
+html[data-theme="dark"] .report-card:hover { border-color: #2c4a44; }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea { background: #0e191e; color: var(--ink); border-color: var(--line); }
+html[data-theme="dark"] .search:focus { background-color: #0e191e; }
+html[data-theme="dark"] .btn { color: var(--ink-2); }
+html[data-theme="dark"] .btn.light { background: #fff; color: var(--brand-d); }
+html[data-theme="dark"] .modal,
+html[data-theme="dark"] .modal-head,
+html[data-theme="dark"] .modal-foot { background: var(--panel); }
+html[data-theme="dark"] .progress { background: #1b2930; }
+html[data-theme="dark"] .packet-card { background: linear-gradient(160deg, #11332e, var(--panel) 60%); border-color: #244840; }
+
+/* readable chips & alerts on dark */
+html[data-theme="dark"] .badge { box-shadow: none; }
+html[data-theme="dark"] .badge.gray { background: #22313a; color: #aebfbf; }
+html[data-theme="dark"] .badge.blue { background: rgba(59,111,224,.2); color: #9bb8ff; }
+html[data-theme="dark"] .badge.green { background: rgba(15,138,77,.2); color: #5fd99a; }
+html[data-theme="dark"] .badge.amber { background: rgba(179,116,26,.24); color: #e6b765; }
+html[data-theme="dark"] .badge.red { background: rgba(198,42,54,.22); color: #f08a90; }
+html[data-theme="dark"] .badge.purple { background: rgba(102,53,201,.24); color: #c0a8f5; }
+html[data-theme="dark"] .alert.info { background: rgba(59,111,224,.12); border-color: rgba(59,111,224,.32); color: #c5d6ff; }
+html[data-theme="dark"] .alert.warn { background: rgba(179,116,26,.14); border-color: rgba(179,116,26,.36); color: #ecc384; }
+html[data-theme="dark"] .alert.red { background: rgba(198,42,54,.14); border-color: rgba(198,42,54,.36); color: #f3a7ac; }
+html[data-theme="dark"] .lk { color: #5fd0bb; border-bottom-color: rgba(95,208,187,.4); }
+
 </style>
 </head>
 <body>
@@ -411,6 +472,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
         <h1 id="viewTitle">Dashboard</h1>
         <div class="topbar-right">
           <input id="globalSearch" class="search" type="search" placeholder="Search patients, drugs, Rx…" />
+          <button id="themeToggle" class="icon-btn" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
           <div class="user-chip">
             <span class="avatar">KA</span>
             <div class="user-meta">
@@ -886,24 +948,29 @@ Views.dashboard = () => {
         <h2 class="hero-title">K. Adeyemi, PharmD</h2>
         <p class="hero-sub">${fmtDate(TODAY)} · ${queue.length} in queue · ${ready} ready for pickup · ${alerts.length} clinical alert${alerts.length === 1 ? "" : "s"}</p>
       </div>
+      <div class="hero-chips">
+        <span class="hero-chip">Net after DIR · <b>${(netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir))}</b></span>
+        <span class="hero-chip">Underwater · <b>${underwater.length}</b></span>
+        <span class="hero-chip">Audit risk · <b>${money(auditAtRisk)}</b></span>
+      </div>
       <div class="hero-actions">
         <button class="btn ghost" data-go="prescriptions">Open queue</button>
         <button class="btn light" data-go="reportcenter">Report Center</button>
       </div>
     </div>
     <div class="stats">
-      ${statCard("Rx in queue", queue.length, "℞", `${ready} ready for pickup`, "green")}
-      ${statCard("Low stock items", lowStock.length, "📦", lowStock.length ? "Reorder needed" : "Stock healthy", lowStock.length ? "amber" : "green")}
-      ${statCard("Clinical alerts", alerts.length, "⚠️", "Interactions & allergies", alerts.length ? "red" : "green")}
-      ${statCard("Revenue (dispensed)", money(revenue), "💵", `${dispensedThisMonth.length} scripts`, "blue")}
+      ${statCard("Rx in queue", queue.length, "℞", `${ready} ready for pickup`, "green", null, [6, 7, 5, 8, 7, 9, 8])}
+      ${statCard("Low stock items", lowStock.length, "📦", lowStock.length ? "Reorder needed" : "Stock healthy", lowStock.length ? "amber" : "green", "inventory", [5, 4, 4, 3, 2, 2])}
+      ${statCard("Clinical alerts", alerts.length, "⚠️", "Interactions & allergies", alerts.length ? "red" : "green", "interactions", [2, 3, 2, 4, 3, 3])}
+      ${statCard("Revenue (dispensed)", money(revenue), "💵", `${dispensedThisMonth.length} scripts`, "blue", "reports", [30, 38, 42, 40, 46, 50])}
     </div>
 
     <div class="section-head"><h2 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Business health · survival signals</h2></div>
     <div class="stats">
-      ${statCard("Net after cost + DIR", (netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir)), "💸", `${money(dirTotal)} DIR drag`, netAfterDir >= 0 ? "green" : "red", "reimbursement")}
-      ${statCard("Underwater claims", underwater.length, "🔻", "dispensed below cost", underwater.length ? "red" : "green", "reimbursement")}
-      ${statCard("$ at risk in audits", money(auditAtRisk), "📋", `${openAudits.length} open audit(s)`, auditAtRisk ? "amber" : "green", "audits")}
-      ${statCard("Compliance due ≤60d", credSoon.length, "📂", credExpired.length ? `${credExpired.length} expired!` : "renewals", credExpired.length ? "red" : credSoon.length ? "amber" : "green", "compliance")}
+      ${statCard("Net after cost + DIR", (netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir)), "💸", `${money(dirTotal)} DIR drag`, netAfterDir >= 0 ? "green" : "red", "reimbursement", [27, 24, 20, 18, 16, 15])}
+      ${statCard("Underwater claims", underwater.length, "🔻", "dispensed below cost", underwater.length ? "red" : "green", "reimbursement", [1, 1, 2, 1, 2, 2])}
+      ${statCard("$ at risk in audits", money(auditAtRisk), "📋", `${openAudits.length} open audit(s)`, auditAtRisk ? "amber" : "green", "audits", [12, 14, 18, 20, 22, 23])}
+      ${statCard("Compliance due ≤60d", credSoon.length, "📂", credExpired.length ? `${credExpired.length} expired!` : "renewals", credExpired.length ? "red" : credSoon.length ? "amber" : "green", "compliance", [1, 2, 2, 3, 3, 3])}
     </div>
 
     <div class="grid-2">
@@ -973,12 +1040,64 @@ Views.dashboard = () => {
     </div>`;
 };
 
-function statCard(label, value, ico, delta, color, goView) {
+function statCard(label, value, ico, delta, color, goView, spark) {
   const attrs = goView ? ` data-go="${goView}" role="button" tabindex="0" title="Open ${goView}"` : "";
   return `<div class="stat${goView ? " clickable" : ""}"${attrs}><span class="ico">${ico}</span>
     <div class="label">${label}</div>
     <div class="value">${value}</div>
-    <div class="delta"><span class="badge ${color}">${delta}</span></div></div>`;
+    <div class="delta"><span class="badge ${color}">${delta}</span></div>
+    ${spark ? `<div class="spark-wrap">${sparkline(spark, color)}</div>` : ""}</div>`;
+}
+
+const SPARK_STROKE = { green: "var(--ok)", red: "var(--danger)", amber: "var(--warn)", blue: "var(--accent)", purple: "#6635c9", gray: "var(--muted)" };
+function sparkline(data, color) {
+  if (!data || data.length < 2) return "";
+  const w = 120, h = 28, min = Math.min(...data), max = Math.max(...data), rng = (max - min) || 1;
+  const pts = data.map((v, i) => `${(i / (data.length - 1) * w).toFixed(1)},${(h - ((v - min) / rng) * h).toFixed(1)}`);
+  const stroke = SPARK_STROKE[color] || "var(--brand)";
+  const area = `0,${h} ` + pts.join(" ") + ` ${w},${h}`;
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" width="100%" height="28" aria-hidden="true">
+    <polygon points="${area}" fill="${stroke}" opacity="0.08"/>
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// Count-up animation for KPI values (respects reduced-motion). Parses prefix
+// (e.g. "$", "−$"), the number, and suffix (e.g. "%") from the final text.
+function animateCounts(root) {
+  if (!root) return;
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) return;
+  root.querySelectorAll(".stat .value").forEach(el => {
+    const final = el.textContent.trim();
+    const m = final.match(/^([^\d]*)([\d,]*\.?\d+)(.*)$/);
+    if (!m) return;
+    const prefix = m[1], suffix = m[3];
+    const decimals = (m[2].split(".")[1] || "").length;
+    const target = parseFloat(m[2].replace(/,/g, ""));
+    if (!isFinite(target)) return;
+    const dur = 650, t0 = performance.now();
+    function tick(t) {
+      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = prefix + (target * e).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + suffix;
+      if (p < 1) requestAnimationFrame(tick); else el.textContent = final;
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+/* theme */
+const THEME_KEY = "pharmadesk.theme";
+function getTheme() { try { return localStorage.getItem(THEME_KEY) || "light"; } catch (e) { return "light"; } }
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  const b = document.getElementById("themeToggle");
+  if (b) b.textContent = t === "dark" ? "☀️" : "🌙";
+}
+function toggleTheme() {
+  const t = getTheme() === "dark" ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+  applyTheme(t);
 }
 
 /* ---------- Prescriptions / Dispensing queue ---------- */
@@ -2207,6 +2326,7 @@ function render() {
   $("#view").innerHTML = Views[currentView]();
   $("#viewTitle").textContent = $(`.nav-item[data-view="${currentView}"]`).textContent.trim();
   wireView();
+  animateCounts($("#view"));
 }
 
 function wireView() {
@@ -2281,6 +2401,8 @@ function navigate(view) {
 
 /* global search → jump to relevant view */
 function wireChrome() {
+  applyTheme(getTheme());
+  const tt = $("#themeToggle"); if (tt) tt.onclick = toggleTheme;
   $(".nav-item").forEach(n => n.onclick = () => navigate(n.dataset.view));
   $("#resetData").onclick = () => {
     if (confirm("Restore all demo data to its original state? This clears your changes.")) {

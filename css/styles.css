@@ -164,8 +164,23 @@ body {
 .btn.ghost:hover { background: rgba(255,255,255,.2); }
 .btn.light { background: #fff; color: var(--brand-d); border-color: #fff; }
 .btn.light:hover { background: #eafff9; }
+.hero-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; position: relative; z-index: 1; }
+.hero-chip { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.18); color: #eafff9;
+  padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; backdrop-filter: blur(4px); }
+.hero-chip b { font-weight: 700; }
 
 .build-tag { font-size: 10.5px; color: #5f9a8f; letter-spacing: .04em; margin-top: 8px; }
+
+/* topbar icon button (theme toggle) */
+.icon-btn { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line);
+  background: var(--soft); cursor: pointer; font-size: 16px; display: grid; place-items: center;
+  transition: background .14s, border-color .14s, transform .05s; }
+.icon-btn:hover { background: var(--brand-wash); border-color: #d8dee2; }
+.icon-btn:active { transform: scale(.94); }
+
+/* KPI sparklines */
+.spark-wrap { margin-top: 12px; height: 28px; opacity: .85; }
+.spark { display: block; }
 
 /* ---------- Stat cards ---------- */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
@@ -350,3 +365,49 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
   #app { display: block; }
   .card { box-shadow: none; border-color: #ccc; }
 }
+
+/* ============================================================
+   Dark theme
+   ============================================================ */
+html[data-theme="dark"] {
+  --ink: #e9f2f0;
+  --ink-2: #b4c6c4;
+  --muted: #8aa0a0;
+  --line: #233039;
+  --line-2: #1c2830;
+  --bg: #0b1417;
+  --panel: #121e23;
+  --soft: #0f1a1f;
+  --brand-wash: #11332e;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 1px 2px rgba(0,0,0,.4), 0 12px 30px -14px rgba(0,0,0,.7);
+  --shadow-lg: 0 28px 70px -20px rgba(0,0,0,.8);
+}
+html[data-theme="dark"] body { background: radial-gradient(120% 80% at 100% 0%, rgba(20,160,138,.08), transparent 55%), var(--bg); }
+html[data-theme="dark"] .topbar { background: rgba(15,26,31,.82); }
+html[data-theme="dark"] .stat.clickable:hover { border-color: #2c4a44; }
+html[data-theme="dark"] .report-card:hover { border-color: #2c4a44; }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea { background: #0e191e; color: var(--ink); border-color: var(--line); }
+html[data-theme="dark"] .search:focus { background-color: #0e191e; }
+html[data-theme="dark"] .btn { color: var(--ink-2); }
+html[data-theme="dark"] .btn.light { background: #fff; color: var(--brand-d); }
+html[data-theme="dark"] .modal,
+html[data-theme="dark"] .modal-head,
+html[data-theme="dark"] .modal-foot { background: var(--panel); }
+html[data-theme="dark"] .progress { background: #1b2930; }
+html[data-theme="dark"] .packet-card { background: linear-gradient(160deg, #11332e, var(--panel) 60%); border-color: #244840; }
+
+/* readable chips & alerts on dark */
+html[data-theme="dark"] .badge { box-shadow: none; }
+html[data-theme="dark"] .badge.gray { background: #22313a; color: #aebfbf; }
+html[data-theme="dark"] .badge.blue { background: rgba(59,111,224,.2); color: #9bb8ff; }
+html[data-theme="dark"] .badge.green { background: rgba(15,138,77,.2); color: #5fd99a; }
+html[data-theme="dark"] .badge.amber { background: rgba(179,116,26,.24); color: #e6b765; }
+html[data-theme="dark"] .badge.red { background: rgba(198,42,54,.22); color: #f08a90; }
+html[data-theme="dark"] .badge.purple { background: rgba(102,53,201,.24); color: #c0a8f5; }
+html[data-theme="dark"] .alert.info { background: rgba(59,111,224,.12); border-color: rgba(59,111,224,.32); color: #c5d6ff; }
+html[data-theme="dark"] .alert.warn { background: rgba(179,116,26,.14); border-color: rgba(179,116,26,.36); color: #ecc384; }
+html[data-theme="dark"] .alert.red { background: rgba(198,42,54,.14); border-color: rgba(198,42,54,.36); color: #f3a7ac; }
+html[data-theme="dark"] .lk { color: #5fd0bb; border-bottom-color: rgba(95,208,187,.4); }
