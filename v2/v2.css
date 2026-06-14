@@ -1,0 +1,59 @@
+/* PharmaDesk V2 comparison layer */
+.v2-nav { border-left: 3px solid rgba(255,255,255,.18); }
+.v2-banner {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #063f36 0%, #0d7d6e 55%, #1d4ed8 100%);
+  color: #fff;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 22px;
+  box-shadow: 0 18px 45px rgba(13,125,110,.22);
+}
+.v2-banner h2 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.03em; }
+.v2-banner p { max-width: 780px; color: rgba(255,255,255,.86); margin: 0 0 16px; line-height: 1.5; }
+.v2-banner .row { align-items: center; }
+.v2-banner .btn { border-color: rgba(255,255,255,.22); }
+.v2-kicker { text-transform: uppercase; letter-spacing: .08em; font-weight: 800; font-size: 11px; color: #b6fff1; margin-bottom: 8px; }
+.v2-pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.v2-pill { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); padding: 7px 10px; border-radius: 999px; font-size: 12px; color: #fff; }
+.v2-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.v2-feature-card { cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.v2-feature-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(16,32,43,.10); }
+.v2-feature-card h3 { margin: 6px 0 8px; font-size: 16px; }
+.v2-feature-card .big { font-size: 28px; }
+.survival-shell { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, .8fr); gap: 16px; }
+.survival-event { border: 1px solid var(--line); border-radius: 16px; background: #fff; padding: 20px; box-shadow: var(--shadow); }
+.survival-time { color: var(--brand); font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.survival-event h2 { margin: 8px 0; font-size: 24px; }
+.choice-grid { display: grid; gap: 10px; margin-top: 16px; }
+.choice-card { text-align: left; justify-content: flex-start; padding: 13px 14px; white-space: normal; }
+.choice-card b { display: block; margin-bottom: 3px; }
+.score-stack { display: grid; gap: 10px; }
+.score-row { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; box-shadow: var(--shadow); }
+.score-row .spread { margin-bottom: 6px; }
+.score-bar { height: 8px; background: #eef2f6; border-radius: 999px; overflow: hidden; }
+.score-bar span { display: block; height: 100%; background: var(--brand); }
+.score-bar.red span { background: var(--danger); }
+.score-bar.amber span { background: var(--warn); }
+.score-bar.green span { background: var(--ok); }
+.history-list { display: grid; gap: 8px; margin-top: 12px; }
+.history-item { background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 13px; }
+.waterfall { display: grid; gap: 8px; margin: 12px 0; }
+.wf-row, .wf-total { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); }
+.wf-row.positive { background: #ecfdf5; color: #065f46; }
+.wf-row.negative { background: #fef2f2; color: #991b1b; }
+.wf-total { background: #f8fafc; font-weight: 800; }
+.wf-total.bad { color: var(--danger); }
+.wf-total.good { color: var(--ok); }
+.mission-hero { background: linear-gradient(135deg, #fff 0%, #eefcf8 100%); border: 1px solid var(--line); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
+.mission-hero h2 { font-size: 30px; margin: 0 0 12px; letter-spacing: -.03em; }
+.mission-hero p { font-size: 16px; line-height: 1.65; max-width: 850px; }
+.tour-step { position: fixed; right: 22px; bottom: 22px; width: min(420px, calc(100vw - 44px)); background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.25); z-index: 120; padding: 18px; }
+.tour-step h3 { margin: 0 0 8px; }
+.tour-step p { color: var(--muted); line-height: 1.5; }
+.tour-step .tour-count { color: var(--brand); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
+@media (max-width: 980px) {
+  .v2-card-grid, .survival-shell { grid-template-columns: 1fr; }
+  .v2-banner h2, .mission-hero h2 { font-size: 24px; }
+}
