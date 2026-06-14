@@ -1,6 +1,12 @@
-/* PharmaDesk V3 planning artifact.
-   Intentionally inactive in the live app.
-   The agent feedback matrix should be used for planning outside the app UI. */
+/* PharmaDesk V3 enhancement loader.
+   Loads the operator upgrades module without adding another app entry script tag. */
 (function () {
-  // No live UI changes.
+  if (window.__pharmadeskOperatorUpgradesLoaded) return;
+  window.__pharmadeskOperatorUpgradesLoaded = true;
+  const current = document.currentScript && document.currentScript.src || "v3/quality.js";
+  const src = current.replace(/quality\.js(?:\?.*)?$/, "operator-upgrades.js");
+  const script = document.createElement("script");
+  script.src = src;
+  script.defer = true;
+  document.body.appendChild(script);
 })();
