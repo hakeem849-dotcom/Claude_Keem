@@ -1,12 +1,18 @@
 /* PharmaDesk V3 enhancement loader.
-   Loads the operator upgrades module without adding another app entry script tag. */
+   Loads enhancement modules without requiring extra app entry script tags. */
 (function () {
-  if (window.__pharmadeskOperatorUpgradesLoaded) return;
-  window.__pharmadeskOperatorUpgradesLoaded = true;
   const current = document.currentScript && document.currentScript.src || "v3/quality.js";
-  const src = current.replace(/quality\.js(?:\?.*)?$/, "operator-upgrades.js");
-  const script = document.createElement("script");
-  script.src = src;
-  script.defer = true;
-  document.body.appendChild(script);
+  const base = current.replace(/quality\.js(?:\?.*)?$/, "");
+
+  function loadOnce(flag, file) {
+    if (window[flag]) return;
+    window[flag] = true;
+    const script = document.createElement("script");
+    script.src = base + file;
+    script.defer = true;
+    document.body.appendChild(script);
+  }
+
+  loadOnce("__pharmadeskOperatorUpgradesLoaded", "operator-upgrades.js");
+  loadOnce("__pharmadeskViewModeLoaded", "view-mode.js");
 })();
