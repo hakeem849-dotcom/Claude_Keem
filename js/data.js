@@ -102,20 +102,78 @@ const SEED = {
       status: "dispensed", dispensedOn: "2026-05-07", maintenance: true, pdc: 0.88 }
   ],
 
-  // Third-party claim adjudication records (keyed to a prescription)
+  // Third-party claim adjudication records (keyed to a prescription).
+  // dirFee = retroactive DIR / pharmacy price-concession clawback (the silent
+  // margin killer). appealStatus tracks a MAC (max allowable cost) appeal.
   claims: [
     { id: "CLM-9001", rxId: "RX-50220", payer: "BlueCross PPO", bin: "610502", pcn: "BCBSRX",
-      billed: 12.60, paid: 9.10, copay: 3.50, status: "paid", rejectCode: "" },
+      billed: 12.60, paid: 9.10, copay: 3.50, status: "paid", rejectCode: "",
+      dirFee: 2.10, appealStatus: "none", recovered: 0 },
     { id: "CLM-9002", rxId: "RX-50221", payer: "Cigna PPO", bin: "017010", pcn: "CIGRX",
-      billed: 18.00, paid: 13.00, copay: 5.00, status: "paid", rejectCode: "" },
+      billed: 18.00, paid: 13.00, copay: 5.00, status: "paid", rejectCode: "",
+      dirFee: 3.50, appealStatus: "none", recovered: 0 },
     { id: "CLM-9003", rxId: "RX-50222", payer: "Medicare Part D — Humana", bin: "610649", pcn: "HUMRX",
-      billed: 18.00, paid: 0, copay: 0, status: "rejected", rejectCode: "75 — Prior authorization required" },
+      billed: 18.00, paid: 0, copay: 0, status: "rejected", rejectCode: "75 — Prior authorization required",
+      dirFee: 0, appealStatus: "none", recovered: 0 },
     { id: "CLM-9004", rxId: "RX-50210", payer: "Medicare Part D — Humana", bin: "610649", pcn: "HUMRX",
-      billed: 9.00, paid: 7.00, copay: 2.00, status: "paid", rejectCode: "" },
+      billed: 9.00, paid: 0.80, copay: 0.30, status: "paid", rejectCode: "",
+      dirFee: 1.40, appealStatus: "submitted", recovered: 0 },
     { id: "CLM-9005", rxId: "RX-50211", payer: "Medicare Part D — WellCare", bin: "603286", pcn: "WCRX",
-      billed: 12.25, paid: 0, copay: 0, status: "rejected", rejectCode: "70 — Product not covered (non-formulary)" },
+      billed: 12.25, paid: 0, copay: 0, status: "rejected", rejectCode: "70 — Product not covered (non-formulary)",
+      dirFee: 0, appealStatus: "none", recovered: 0 },
     { id: "CLM-9006", rxId: "RX-50212", payer: "BlueCross PPO", bin: "610502", pcn: "BCBSRX",
-      billed: 9.90, paid: 6.90, copay: 3.00, status: "paid", rejectCode: "" }
+      billed: 9.90, paid: 1.40, copay: 0.50, status: "paid", rejectCode: "",
+      dirFee: 4.30, appealStatus: "none", recovered: 0 }
+  ],
+
+  // PBM / DEA audits — recoupment risk and paperwork burden
+  audits: [
+    { id: "AUD-22-014", pbm: "Caremark", type: "Desk audit", status: "open",
+      started: "2026-05-28", due: "2026-06-18", claims: 42, amountAtRisk: 8450.00, recouped: 0,
+      reason: "Refill-too-soon & days-supply discrepancies",
+      action: "Upload signature logs + hard copies for 42 flagged claims by due date." },
+    { id: "AUD-22-009", pbm: "OptumRx", type: "On-site audit", status: "responded",
+      started: "2026-04-10", due: "2026-05-10", claims: 120, amountAtRisk: 15200.00, recouped: 3100.00,
+      reason: "Invoice reconciliation (wholesaler purchases vs. units dispensed)",
+      action: "Awaiting findings letter; partial recoupment proposed." },
+    { id: "AUD-21-101", pbm: "Express Scripts", type: "Desk audit", status: "closed",
+      started: "2026-01-15", due: "2026-02-15", claims: 30, amountAtRisk: 5400.00, recouped: 1200.00,
+      reason: "Missing prescriber DEA on C-II claims",
+      action: "Closed — recoupment reduced after appeal." }
+  ],
+
+  // Audit-readiness scorecard (common audit triggers)
+  auditReadiness: [
+    { id: "AR1", item: "Patient signature logs captured for every pickup", ok: true,
+      detail: "Electronic signature log current." },
+    { id: "AR2", item: "Hard copy on file for every C-II dispense", ok: false,
+      detail: "2 of 5 C-II hard copies not yet scanned." },
+    { id: "AR3", item: "Days supply matches quantity ÷ directions", ok: false,
+      detail: "1 claim flagged for qty/sig mismatch." },
+    { id: "AR4", item: "DAW codes documented where brand dispensed", ok: true,
+      detail: "All DAW codes present." },
+    { id: "AR5", item: "Prescriber DEA validated on controlled Rx", ok: true,
+      detail: "DEA numbers verified." },
+    { id: "AR6", item: "Wholesaler invoices reconciled to dispensing", ok: false,
+      detail: "April purchase invoices not yet reconciled." }
+  ],
+
+  // Licenses, registrations & credentials (the renewal paperwork treadmill)
+  credentials: [
+    { id: "CR1", name: "State Pharmacy Permit", holder: "PharmaDesk Pharmacy",
+      authority: "State Board of Pharmacy", number: "PH-•••842", expires: "2026-07-31", renewalCost: 380 },
+    { id: "CR2", name: "DEA Registration", holder: "PharmaDesk Pharmacy",
+      authority: "US DEA", number: "BP•••4471", expires: "2026-09-30", renewalCost: 888 },
+    { id: "CR3", name: "Pharmacist-in-Charge License", holder: "K. Adeyemi, PharmD",
+      authority: "State Board of Pharmacy", number: "RPH-•••203", expires: "2026-06-30", renewalCost: 250 },
+    { id: "CR4", name: "Professional & General Liability Insurance", holder: "PharmaDesk Pharmacy",
+      authority: "Pharmacists Mutual", number: "POL-•••6650", expires: "2026-12-31", renewalCost: 4200 },
+    { id: "CR5", name: "NCPDP / NPI Credentialing", holder: "PharmaDesk Pharmacy",
+      authority: "NCPDP", number: "NCPDP •••118", expires: "2027-03-01", renewalCost: 0 },
+    { id: "CR6", name: "Immunization Certification", holder: "K. Adeyemi, PharmD",
+      authority: "APhA", number: "IZ-•••77", expires: "2026-08-15", renewalCost: 0 },
+    { id: "CR7", name: "PMP / PDMP Account", holder: "K. Adeyemi, PharmD",
+      authority: "State PDMP", number: "PMP-•••12", expires: "2026-06-20", renewalCost: 0 }
   ],
 
   // Medication Therapy Management / counseling task list
@@ -208,6 +266,9 @@ const Store = (() => {
     get interactionRules() { return state.interactionRules; },
     get claims() { return state.claims; },
     get mtmTasks() { return state.mtmTasks; },
+    get audits() { return state.audits; },
+    get auditReadiness() { return state.auditReadiness; },
+    get credentials() { return state.credentials; },
     commit() { save(state); },
     reset() { state = reset(); return state; },
     findPatient(id) { return state.patients.find(p => p.id === id); },

@@ -51,7 +51,8 @@ let failures = 0;
 
   const { Views } = new Function(read("js/data.js") + "\n" + read("js/app.js") + "\n; return { Views };")();
   const names = ["dashboard", "prescriptions", "patients", "inventory", "interactions",
-    "claims", "refills", "controlled", "immunizations", "reports"];
+    "claims", "reimbursement", "refills", "controlled", "immunizations", "audits",
+    "compliance", "reports"];
   for (const n of names) {
     try {
       const html = Views[n]();

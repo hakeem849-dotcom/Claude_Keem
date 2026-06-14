@@ -18,6 +18,9 @@ build step, no dependencies — just open the file in a browser.
 | **Inventory** | Formulary & stock levels, reorder-point alerts, expiry tracking, receiving stock, and inventory valuation |
 | **Interaction Checker** | Drug Utilization Review — screen a patient's whole profile or run an ad-hoc multi-drug check against an interaction knowledge base; allergy cross-checks |
 | **Claims & Billing** | Third-party claim adjudication (BIN/PCN, billed/paid/copay), NCPDP reject codes, and re-adjudication of rejected claims |
+| **Reimbursement / PBM** | Per-claim net after acquisition cost **and DIR clawbacks**; flags **underwater claims** (paid below cost); MAC appeal workflow — the economics that actually close pharmacies |
+| **Audit Center** | Active PBM/DEA audits with $ at risk, due dates & recoupment, plus an audit-readiness scorecard to close documentation gaps before they cost money |
+| **Compliance** | License / registration / insurance renewals (permit, DEA, PIC license, liability, PMP) with expiry alerts and renewal tracking |
 | **Refills & Adherence** | Refill-due tracking with reminders, medication adherence (PDC) scoring, and an MTM / patient-counseling task list |
 | **Controlled Log** | Perpetual inventory + dispensing register for DEA C-II through C-V scheduled drugs |
 | **Immunizations** | Record and review vaccine administrations (vaccine, lot, site, date) |

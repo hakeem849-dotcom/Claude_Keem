@@ -143,12 +143,30 @@ Views.dashboard = () => {
     drugs.forEach(d => { const a = allergyConflict(p, d); if (a) alerts.push({ type: "allergy", patient: p, drug: d, allergen: a }); });
   });
 
+  // Survival signals — the economics & red tape that close pharmacies
+  const econ = Store.claims.filter(c => c.status !== "rejected").map(claimEconomics);
+  const netAfterDir = econ.reduce((s, e) => s + e.net, 0);
+  const underwater = econ.filter(e => e.underwater);
+  const dirTotal = econ.reduce((s, e) => s + e.dirFee, 0);
+  const openAudits = Store.audits.filter(a => a.status !== "closed");
+  const auditAtRisk = openAudits.reduce((s, a) => s + (a.amountAtRisk - a.recouped), 0);
+  const credSoon = Store.credentials.filter(c => daysUntil(c.expires) <= 60);
+  const credExpired = Store.credentials.filter(c => daysUntil(c.expires) < 0);
+
   return `
     <div class="stats">
       ${statCard("Rx in queue", queue.length, "℞", `${ready} ready for pickup`, "green")}
       ${statCard("Low stock items", lowStock.length, "📦", lowStock.length ? "Reorder needed" : "Stock healthy", lowStock.length ? "amber" : "green")}
       ${statCard("Clinical alerts", alerts.length, "⚠️", "Interactions & allergies", alerts.length ? "red" : "green")}
       ${statCard("Revenue (dispensed)", money(revenue), "💵", `${dispensedThisMonth.length} scripts`, "blue")}
+    </div>
+
+    <div class="section-head"><h2 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Business health · survival signals</h2></div>
+    <div class="stats">
+      ${statCard("Net after cost + DIR", (netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir)), "💸", `${money(dirTotal)} DIR drag`, netAfterDir >= 0 ? "green" : "red")}
+      ${statCard("Underwater claims", underwater.length, "🔻", "dispensed below cost", underwater.length ? "red" : "green")}
+      ${statCard("$ at risk in audits", money(auditAtRisk), "📋", `${openAudits.length} open audit(s)`, auditAtRisk ? "amber" : "green")}
+      ${statCard("Compliance due ≤60d", credSoon.length, "📂", credExpired.length ? `${credExpired.length} expired!` : "renewals", credExpired.length ? "red" : credSoon.length ? "amber" : "green")}
     </div>
 
     <div class="grid-2">
@@ -208,6 +226,9 @@ Views.dashboard = () => {
           <dt>Formulary items</dt><dd>${Store.inventory.length}</dd>
           <dt>Controlled scripts (mo.)</dt><dd>${dispensedThisMonth.filter(r => Store.findDrug(r.drugId)?.schedule > 0).length} dispensed</dd>
           <dt>Rejected claims</dt><dd>${Store.claims.filter(c => c.status === "rejected").length} to resolve</dd>
+          <dt>Underwater claims</dt><dd>${underwater.length} below cost</dd>
+          <dt>Open audits</dt><dd>${openAudits.length} · ${money(auditAtRisk)} at risk</dd>
+          <dt>Credentials due</dt><dd>${credSoon.length} ≤60 days${credExpired.length ? ` (${credExpired.length} expired)` : ""}</dd>
           <dt>Open MTM tasks</dt><dd>${Store.mtmTasks.filter(t => !t.done).length}</dd>
           <dt>Immunizations on file</dt><dd>${Store.immunizations.length}</dd>
         </dl>
@@ -687,6 +708,15 @@ Views.reports = () => {
         <dt>Inventory on hand (cost)</dt><dd>${money(Store.inventory.reduce((s, d) => s + d.stock * d.cost, 0))}</dd>
         <dt>Controlled scripts dispensed</dt><dd>${dispensed.filter(r => Store.findDrug(r.drugId)?.schedule > 0).length}</dd>
         <dt>Immunizations administered</dt><dd>${Store.immunizations.length}</dd>
+        ${(() => {
+          const econ = Store.claims.filter(c => c.status !== "rejected").map(claimEconomics);
+          const dir = econ.reduce((s, e) => s + e.dirFee, 0);
+          const netDir = econ.reduce((s, e) => s + e.net, 0);
+          const under = econ.filter(e => e.underwater).length;
+          return `<dt>DIR fee clawbacks</dt><dd style="color:var(--danger)">−${money(dir)}</dd>
+            <dt>Net margin after DIR</dt><dd style="color:var(--${netDir >= 0 ? "ok" : "danger"})">${netDir < 0 ? "−" : ""}${money(Math.abs(netDir))}</dd>
+            <dt>Claims dispensed below cost</dt><dd>${under}</dd>`;
+        })()}
       </dl>
     </div>`;
 };
@@ -831,6 +861,219 @@ function completeMtm(id) {
   render();
 }
 
+/* ---------- PBM economics helpers ---------- */
+// Net reality of a claim: what the plan paid + patient copay, minus what the
+// drug cost to buy, minus the retroactive DIR clawback.
+function claimEconomics(c) {
+  const rx = Store.prescriptions.find(r => r.id === c.rxId);
+  const drug = rx ? Store.findDrug(rx.drugId) : null;
+  const acquisitionCost = rx && drug ? rx.qty * drug.cost : 0;
+  const reimbursement = (c.paid || 0) + (c.copay || 0);
+  const dirFee = c.dirFee || 0;
+  const paid = c.status !== "rejected";
+  const net = paid ? reimbursement - acquisitionCost - dirFee + (c.recovered || 0) : 0;
+  return {
+    rx, drug, acquisitionCost, reimbursement, dirFee, net,
+    underwater: paid && net < 0,
+    macEligible: paid && reimbursement < acquisitionCost
+  };
+}
+
+/* ---------- Reimbursement / PBM economics ---------- */
+Views.reimbursement = () => {
+  const paid = Store.claims.filter(c => c.status !== "rejected");
+  const econ = paid.map(c => ({ c, e: claimEconomics(c) }));
+  const net = econ.reduce((s, x) => s + x.e.net, 0);
+  const dirTotal = econ.reduce((s, x) => s + x.e.dirFee, 0);
+  const under = econ.filter(x => x.e.underwater);
+  const lost = under.reduce((s, x) => s + x.e.net, 0);
+  const openAppeals = Store.claims.filter(c => c.appealStatus === "submitted").length;
+
+  const rows = econ.map(({ c, e }) => {
+    const badge = e.underwater ? "red" : "green";
+    let action = "";
+    if (c.appealStatus === "submitted") {
+      action = `<span class="badge amber">appeal submitted</span>
+        <button class="btn sm" data-appeal-win="${c.id}">Won</button>
+        <button class="btn sm" data-appeal-lose="${c.id}">Lost</button>`;
+    } else if (c.appealStatus === "won") {
+      action = `<span class="badge green">appeal won +${money(c.recovered)}</span>`;
+    } else if (c.appealStatus === "lost") {
+      action = `<span class="badge gray">appeal lost</span>`;
+    } else if (e.macEligible) {
+      action = `<button class="btn sm primary" data-appeal="${c.id}">File MAC appeal</button>`;
+    } else {
+      action = `<span class="muted small">—</span>`;
+    }
+    return `<tr>
+      <td><b>${e.drug ? e.drug.name + " " + e.drug.strength : c.rxId}</b><div class="muted small">${c.payer}</div></td>
+      <td>${money(e.reimbursement)}</td>
+      <td>${money(e.acquisitionCost)}</td>
+      <td style="color:var(--danger)">−${money(e.dirFee)}</td>
+      <td><b style="color:var(--${e.underwater ? "danger" : "ok"})">${e.net < 0 ? "−" : ""}${money(Math.abs(e.net))}</b></td>
+      <td><span class="badge ${badge}">${e.underwater ? "underwater" : "profit"}</span></td>
+      <td style="text-align:right;white-space:nowrap">${action}</td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+      ${statCard("Net after cost + DIR", (net < 0 ? "−" : "") + money(Math.abs(net)), "💸",
+        `${money(dirTotal)} DIR clawbacks`, net >= 0 ? "green" : "red")}
+      ${statCard("Underwater claims", under.length, "🔻",
+        `${money(Math.abs(lost))} below cost`, under.length ? "red" : "green")}
+      ${statCard("DIR fee drag", money(dirTotal), "🩸", "retroactive clawbacks", dirTotal ? "amber" : "green")}
+      ${statCard("Open MAC appeals", openAppeals, "⚖️", "pricing disputes", openAppeals ? "blue" : "green")}
+    </div>
+    <div class="card">
+      <div class="section-head"><h2>Per-claim profitability (PBM reality check)</h2></div>
+      <div class="alert ${under.length ? "red" : "info"}" style="margin-bottom:14px"><span>${under.length ? "🛑" : "ℹ️"}</span>
+        <div>This is the number that closes pharmacies: <b>reimbursement − acquisition cost − DIR fee</b>.
+        A claim can look "paid" yet lose money once the PBM claws back a DIR fee months later. Underwater claims where
+        the plan paid <em>below your cost</em> are eligible for a <b>MAC appeal</b>.</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Drug / Payer</th><th>Reimbursed</th><th>Drug cost</th><th>DIR fee</th><th>Net</th><th>Status</th><th>MAC appeal</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+};
+
+function fileMacAppeal(id) {
+  const c = Store.claims.find(x => x.id === id);
+  if (!c) return;
+  c.appealStatus = "submitted";
+  Store.commit();
+  toast(`MAC appeal filed for ${id}`);
+  render();
+}
+function resolveMacAppeal(id, won) {
+  const c = Store.claims.find(x => x.id === id);
+  if (!c) return;
+  if (won) {
+    const e = claimEconomics(c);
+    // a successful appeal trues up reimbursement to at least acquisition cost + small margin
+    c.recovered = +(e.acquisitionCost - e.reimbursement + 0.50).toFixed(2);
+    c.appealStatus = "won";
+    toast(`Appeal won — recovered ${money(c.recovered)} on ${id}`);
+  } else {
+    c.appealStatus = "lost";
+    toast(`Appeal lost for ${id}`, "warn");
+  }
+  Store.commit();
+  render();
+}
+
+/* ---------- Audit Center ---------- */
+Views.audits = () => {
+  const open = Store.audits.filter(a => a.status !== "closed");
+  const atRisk = open.reduce((s, a) => s + (a.amountAtRisk - a.recouped), 0);
+  const recoupedTotal = Store.audits.reduce((s, a) => s + a.recouped, 0);
+  const ready = Store.auditReadiness;
+  const readyPct = Math.round(ready.filter(r => r.ok).length / ready.length * 100);
+
+  const auditRows = Store.audits.map(a => {
+    const sb = a.status === "open" ? "red" : a.status === "responded" ? "amber" : "gray";
+    const due = daysUntil(a.due);
+    return `<tr>
+      <td><b>${a.id}</b><div class="muted small">${a.pbm} · ${a.type}</div></td>
+      <td>${escapeHtml(a.reason)}<div class="muted small">${escapeHtml(a.action)}</div></td>
+      <td>${a.claims}</td>
+      <td>${money(a.amountAtRisk - a.recouped)}<div class="muted small">${money(a.recouped)} recouped</div></td>
+      <td>${fmtDate(a.due)}${a.status !== "closed" && due <= 7 ? ` <span class="badge red">${due}d</span>` : ""}</td>
+      <td><span class="badge ${sb}">${a.status}</span></td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+      ${statCard("Open audits", open.length, "📋", "in progress", open.length ? "amber" : "green")}
+      ${statCard("$ at risk", money(atRisk), "⚠️", "potential recoupment", atRisk ? "red" : "green")}
+      ${statCard("Recouped to date", money(recoupedTotal), "📉", "lost to clawbacks", "gray")}
+      ${statCard("Audit readiness", readyPct + "%", "✅", `${ready.filter(r => r.ok).length}/${ready.length} controls`, readyPct >= 80 ? "green" : "amber")}
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-head"><h2>Active & past audits</h2></div>
+      <div class="alert info" style="margin-bottom:14px"><span>🛡️</span>
+        <div>PBM audits can recoup payments months after dispensing over technicalities (a missing
+        signature, a days-supply rounding). Respond before the due date and appeal findings — money left
+        unappealed is money gone.</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Audit</th><th>Reason / next step</th><th>Claims</th><th>At risk</th><th>Due</th><th>Status</th></tr></thead>
+        <tbody>${auditRows}</tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="section-head"><h2>Audit-readiness scorecard</h2></div>
+      ${ready.map(r => `<div class="spread" style="padding:9px 0;border-bottom:1px solid var(--line)">
+        <div><span class="badge ${r.ok ? "green" : "red"}">${r.ok ? "✓" : "gap"}</span>
+          &nbsp;${escapeHtml(r.item)}<div class="muted small">${escapeHtml(r.detail)}</div></div>
+        ${r.ok ? "" : `<button class="btn sm primary" data-audit-fix="${r.id}">Resolve</button>`}
+      </div>`).join("")}
+    </div>`;
+};
+
+function resolveAuditGap(id) {
+  const r = Store.auditReadiness.find(x => x.id === id);
+  if (!r) return;
+  r.ok = true;
+  r.detail = "Resolved and documented.";
+  Store.commit();
+  toast("Audit gap resolved");
+  render();
+}
+
+/* ---------- Compliance / credentials ---------- */
+Views.compliance = () => {
+  const creds = [...Store.credentials].sort((a, b) => a.expires.localeCompare(b.expires));
+  const expired = creds.filter(c => daysUntil(c.expires) < 0);
+  const soon = creds.filter(c => daysUntil(c.expires) >= 0 && daysUntil(c.expires) <= 60);
+  const annualCost = creds.reduce((s, c) => s + (c.renewalCost || 0), 0);
+
+  const rows = creds.map(c => {
+    const d = daysUntil(c.expires);
+    const badge = d < 0 ? "red" : d <= 30 ? "red" : d <= 60 ? "amber" : "green";
+    const lbl = d < 0 ? `expired ${-d}d ago` : `${d}d left`;
+    return `<tr>
+      <td><b>${c.name}</b><div class="muted small">${c.holder}</div></td>
+      <td>${c.authority}</td>
+      <td class="small">${c.number}</td>
+      <td>${fmtDate(c.expires)} <span class="badge ${badge}">${lbl}</span></td>
+      <td>${c.renewalCost ? money(c.renewalCost) : "—"}</td>
+      <td style="text-align:right">${d <= 60 ? `<button class="btn sm primary" data-renew="${c.id}">Renew</button>`
+        : `<button class="btn sm" data-renew="${c.id}">Renew</button>`}</td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+      ${statCard("Expired", expired.length, "🚨", "act immediately", expired.length ? "red" : "green")}
+      ${statCard("Expiring ≤60 days", soon.length, "📂", "renew soon", soon.length ? "amber" : "green")}
+      ${statCard("Annual renewal cost", money(annualCost), "💵", "licenses & insurance", "blue")}
+      ${statCard("Credentials tracked", creds.length, "🗂️", "permits & registrations", "gray")}
+    </div>
+    <div class="card">
+      <div class="section-head"><h2>Licenses, registrations & insurance</h2></div>
+      <div class="alert ${expired.length ? "red" : "info"}" style="margin-bottom:14px"><span>${expired.length ? "🚨" : "🗓️"}</span>
+        <div>A lapsed permit, DEA registration, or liability policy can shut a pharmacy down overnight or void
+        insurance. Track every renewal in one place so nothing slips.</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Credential</th><th>Authority</th><th>Number</th><th>Expires</th><th>Renewal</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+};
+
+function renewCredential(id) {
+  const c = Store.credentials.find(x => x.id === id);
+  if (!c) return;
+  const d = new Date(c.expires);
+  d.setFullYear(d.getFullYear() + 1);
+  c.expires = d.toISOString().slice(0, 10);
+  Store.commit();
+  toast(`${c.name} renewed → ${fmtDate(c.expires)}`);
+  render();
+}
+
 /* ============================================================
    Router & event wiring
    ============================================================ */
@@ -881,6 +1124,14 @@ function wireView() {
   // refills & adherence
   $$("[data-remind]").forEach(b => b.onclick = () => sendReminder(b.dataset.remind));
   $$("[data-mtm]").forEach(b => b.onclick = () => completeMtm(b.dataset.mtm));
+  // reimbursement / PBM
+  $$("[data-appeal]").forEach(b => b.onclick = () => fileMacAppeal(b.dataset.appeal));
+  $$("[data-appeal-win]").forEach(b => b.onclick = () => resolveMacAppeal(b.dataset.appealWin, true));
+  $$("[data-appeal-lose]").forEach(b => b.onclick = () => resolveMacAppeal(b.dataset.appealLose, false));
+  // audits
+  $$("[data-audit-fix]").forEach(b => b.onclick = () => resolveAuditGap(b.dataset.auditFix));
+  // compliance
+  $$("[data-renew]").forEach(b => b.onclick = () => renewCredential(b.dataset.renew));
 }
 
 function restoreFocus(id, val) {

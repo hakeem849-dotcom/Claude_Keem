@@ -68,9 +68,10 @@ test/smoke.js               # headless tests
 - **UI** lives in `js/app.js`:
   - `Views` is an object of functions, one per screen
     (`Views.dashboard`, `Views.prescriptions`, `Views.patients`,
-    `Views.inventory`, `Views.interactions`, `Views.claims`, `Views.refills`,
-    `Views.controlled`, `Views.immunizations`, `Views.reports`). Each returns an
-    **HTML string**.
+    `Views.inventory`, `Views.interactions`, `Views.claims`,
+    `Views.reimbursement`, `Views.refills`, `Views.controlled`,
+    `Views.immunizations`, `Views.audits`, `Views.compliance`, `Views.reports`).
+    Each returns an **HTML string**.
   - `render()` sets `#view`'s innerHTML to `Views[currentView]()` then calls
     `wireView()` to attach event handlers (via `data-*` attributes).
   - `navigate(view)` switches the active view; nav buttons in `index.html` carry
@@ -92,6 +93,16 @@ test/smoke.js               # headless tests
   and a dedicated register.
 - **Claims:** adjudication records with status `paid|rejected|reversed` and NCPDP
   reject codes; `readjudicate()` resolves a rejection.
+- **PBM economics (the survival math):** `claimEconomics(claim)` returns
+  `acquisitionCost` (`rx.qty * drug.cost`), `reimbursement` (`paid + copay`),
+  `dirFee` (retroactive clawback), and `net` (reimbursement − cost − DIR +
+  recovered). `underwater` = net < 0; `macEligible` = reimbursement < cost.
+  MAC appeals: `fileMacAppeal()` / `resolveMacAppeal()`. These feed the
+  Reimbursement view and the dashboard "survival signals" row.
+- **Audits:** `audits` (active/closed with `amountAtRisk`/`recouped`) and
+  `auditReadiness` (control checklist; `resolveAuditGap()` closes a gap).
+- **Compliance:** `credentials` with `expires`; `renewCredential()` pushes the
+  date out one year. Expiry coloring keyed off `daysUntil()`.
 - **Refills/Adherence:** refill-due dates derived from `dispensedOn + daysSupply`;
   `pdc` (Proportion of Days Covered) per maintenance med; MTM task list.
 
