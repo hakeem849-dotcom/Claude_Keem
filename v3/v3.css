@@ -1,0 +1,44 @@
+/* PharmaDesk V3 — Operator Edition */
+.muted-nav { opacity: .74; }
+.ops-hero { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.ops-hero h2 { margin: 0 0 8px; font-size: 26px; letter-spacing: -.03em; }
+.ops-hero p { margin: 0; color: var(--muted); line-height: 1.55; max-width: 920px; }
+.ops-banner { border-left: 5px solid var(--brand); background: #eefcf8; padding: 12px 14px; border-radius: 10px; margin-top: 12px; color: #134e4a; }
+.ops-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 16px; }
+.ops-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.ops-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.ops-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.ops-card h3 { margin: 0 0 8px; font-size: 15px; }
+.ops-card p { color: var(--muted); line-height: 1.5; }
+.queue-row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.queue-row:last-child { border-bottom: 0; }
+.queue-row.done { opacity: .48; }
+.priority-dot { width: 11px; height: 11px; border-radius: 999px; margin-top: 6px; background: var(--muted); }
+.priority-dot.red { background: var(--danger); }
+.priority-dot.amber { background: var(--warn); }
+.priority-dot.blue { background: var(--accent); }
+.priority-dot.green { background: var(--ok); }
+.action-note { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+.protocol-list { display: grid; gap: 10px; }
+.protocol-step { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; background: #f8fafc; border: 1px solid var(--line); padding: 10px; border-radius: 10px; }
+.protocol-num { width: 24px; height: 24px; border-radius: 999px; display: grid; place-items: center; background: var(--brand); color: #fff; font-weight: 700; font-size: 12px; }
+.waterfall { display: grid; gap: 7px; margin-top: 8px; }
+.wf { display: flex; justify-content: space-between; gap: 12px; border: 1px solid var(--line); padding: 8px 10px; border-radius: 9px; }
+.wf.plus { background: #ecfdf5; color: #065f46; }
+.wf.minus { background: #fff1f2; color: #991b1b; }
+.wf.total { background: #f8fafc; font-weight: 800; }
+.wf.total.bad { color: var(--danger); }
+.wf.total.good { color: var(--ok); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.patient-card { cursor: pointer; }
+.patient-card:hover { border-color: var(--brand); }
+.note-list { display: grid; gap: 8px; margin-top: 10px; }
+.note-item { background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.close-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.close-row:last-child { border-bottom: 0; }
+.close-row.complete { opacity: .52; }
+.order-suggestion { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.order-suggestion:last-child { border-bottom: 0; }
+.sop-section { margin-bottom: 16px; }
+.sop-section h3 { margin: 0 0 8px; }
+@media (max-width: 1050px) { .ops-grid, .ops-grid-3, .ops-grid-4 { grid-template-columns: 1fr; } .queue-row { grid-template-columns: auto 1fr; } .queue-row > .row { grid-column: 2; } }
