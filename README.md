@@ -22,15 +22,20 @@ build step, no dependencies — just open the file in a browser.
 | **Audit Center** | Active PBM/DEA audits with $ at risk, due dates & recoupment, plus an audit-readiness scorecard to close documentation gaps before they cost money |
 | **Compliance** | License / registration / insurance renewals (permit, DEA, PIC license, liability, PMP) with expiry alerts and renewal tracking |
 | **Refills & Adherence** | Refill-due tracking with reminders, medication adherence (PDC) scoring, and an MTM / patient-counseling task list |
+| **Report Center** | One-click consolidate → clean → preview → export (CSV / printable) for 8 report types, plus a **reimbursement submission packet** (cover letter + appealable claims) ready to send to a PBM |
 | **Controlled Log** | Perpetual inventory + dispensing register for DEA C-II through C-V scheduled drugs |
 | **Immunizations** | Record and review vaccine administrations (vaccine, lot, site, date) |
 | **Business Reports** | Revenue, cost of goods, gross margin, top medications, and payer mix |
 
-### Clinical safety features (simulated)
+### Clinical & financial safety features (simulated)
 - **Automatic DUR gate** — advancing a prescription past verification triggers an
   interaction + allergy screen; major findings require a documented override.
+- **Below-cost dispensing guard** — filling a money-losing script triggers a warning
+  with the projected reimbursement, cost, DIR fee, and net loss before you commit.
 - **Allergy cross-checking** between a patient's recorded allergies and prescribed drugs.
 - **Controlled-substance awareness** with schedule badges and a dedicated register.
+- **Click-into details everywhere** — drugs, claims, audits, and credentials open
+  detail modals; dashboard KPIs are clickable shortcuts into their module.
 
 ## Running it
 

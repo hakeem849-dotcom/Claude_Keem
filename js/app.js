@@ -163,10 +163,10 @@ Views.dashboard = () => {
 
     <div class="section-head"><h2 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Business health · survival signals</h2></div>
     <div class="stats">
-      ${statCard("Net after cost + DIR", (netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir)), "💸", `${money(dirTotal)} DIR drag`, netAfterDir >= 0 ? "green" : "red")}
-      ${statCard("Underwater claims", underwater.length, "🔻", "dispensed below cost", underwater.length ? "red" : "green")}
-      ${statCard("$ at risk in audits", money(auditAtRisk), "📋", `${openAudits.length} open audit(s)`, auditAtRisk ? "amber" : "green")}
-      ${statCard("Compliance due ≤60d", credSoon.length, "📂", credExpired.length ? `${credExpired.length} expired!` : "renewals", credExpired.length ? "red" : credSoon.length ? "amber" : "green")}
+      ${statCard("Net after cost + DIR", (netAfterDir < 0 ? "−" : "") + money(Math.abs(netAfterDir)), "💸", `${money(dirTotal)} DIR drag`, netAfterDir >= 0 ? "green" : "red", "reimbursement")}
+      ${statCard("Underwater claims", underwater.length, "🔻", "dispensed below cost", underwater.length ? "red" : "green", "reimbursement")}
+      ${statCard("$ at risk in audits", money(auditAtRisk), "📋", `${openAudits.length} open audit(s)`, auditAtRisk ? "amber" : "green", "audits")}
+      ${statCard("Compliance due ≤60d", credSoon.length, "📂", credExpired.length ? `${credExpired.length} expired!` : "renewals", credExpired.length ? "red" : credSoon.length ? "amber" : "green", "compliance")}
     </div>
 
     <div class="grid-2">
@@ -236,8 +236,9 @@ Views.dashboard = () => {
     </div>`;
 };
 
-function statCard(label, value, ico, delta, color) {
-  return `<div class="stat"><span class="ico">${ico}</span>
+function statCard(label, value, ico, delta, color, goView) {
+  const attrs = goView ? ` data-go="${goView}" role="button" tabindex="0" title="Open ${goView}"` : "";
+  return `<div class="stat${goView ? " clickable" : ""}"${attrs}><span class="ico">${ico}</span>
     <div class="label">${label}</div>
     <div class="value">${value}</div>
     <div class="delta"><span class="badge ${color}">${delta}</span></div></div>`;
@@ -250,12 +251,16 @@ Views.prescriptions = () => {
     const m = STATUS_META[r.status];
     const controlled = d.schedule > 0;
     const next = nextStatus(r.status);
+    const pe = projectedEconomics(d, r.qty);
     return `<tr>
       <td><b>${r.id}</b>${controlled ? ` <span class="badge red" title="Schedule ${d.schedule}">C-${d.schedule}</span>` : ""}</td>
       <td>${p.first} ${p.last}<div class="muted small">${p.insurance}</div></td>
-      <td>${d.name} ${d.strength}<div class="muted small">${escapeHtml(r.sig)}</div></td>
+      <td><span class="lk" data-drug="${d.id}">${d.name} ${d.strength}</span><div class="muted small">${escapeHtml(r.sig)}</div></td>
       <td>${r.qty} <span class="muted small">/ ${r.daysSupply}d</span></td>
       <td>${r.refills} left</td>
+      <td>${pe.net < 0
+        ? `<span class="badge red" title="Loses money — dispensing will warn">▼ −${money(Math.abs(pe.net))}</span>`
+        : `<span class="badge green">+${money(pe.net)}</span>`}</td>
       <td><span class="badge ${m.badge}">${m.label}</span></td>
       <td style="text-align:right;white-space:nowrap">
         ${next ? `<button class="btn sm primary" data-advance="${r.id}">${next === "dispensed" ? "Dispense" : "Advance →"}</button>` :
@@ -275,7 +280,7 @@ Views.prescriptions = () => {
         Drug Utilization Review (interactions & allergies) runs automatically before you advance.</div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Rx</th><th>Patient</th><th>Drug & Sig</th><th>Qty</th><th>Refills</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Rx</th><th>Patient</th><th>Drug & Sig</th><th>Qty</th><th>Refills</th><th>Est. margin</th><th>Status</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </div>`;
@@ -309,15 +314,48 @@ function advanceRx(rxId) {
 function commitAdvance(rx, next) {
   const drug = Store.findDrug(rx.drugId);
   if (next === "dispensed") {
-    if (drug.stock < rx.qty) { toast(`Not enough ${drug.name} on hand (need ${rx.qty}, have ${drug.stock})`, "err"); return; }
-    drug.stock -= rx.qty;
-    rx.dispensedOn = TODAY.toISOString().slice(0, 10);
-    if (rx.refills > 0) rx.refills -= 1;
+    const pe = projectedEconomics(drug, rx.qty);
+    if (pe.net < 0) return showBelowCostWarning(rx, pe, () => doDispense(rx));
+    return doDispense(rx);
   }
   rx.status = next;
   Store.commit();
-  toast(next === "dispensed" ? `Dispensed ${drug.name} — inventory updated` : `${rx.id} → ${STATUS_META[next].label}`);
+  toast(`${rx.id} → ${STATUS_META[next].label}`);
   render();
+}
+
+function doDispense(rx) {
+  const drug = Store.findDrug(rx.drugId);
+  if (drug.stock < rx.qty) { toast(`Not enough ${drug.name} on hand (need ${rx.qty}, have ${drug.stock})`, "err"); return; }
+  drug.stock -= rx.qty;
+  rx.dispensedOn = TODAY.toISOString().slice(0, 10);
+  if (rx.refills > 0) rx.refills -= 1;
+  rx.status = "dispensed";
+  Store.commit();
+  toast(`Dispensed ${drug.name} — inventory updated`);
+  render();
+}
+
+// Below-cost dispensing guard — warns before you fill a money-losing script
+function showBelowCostWarning(rx, pe, onProceed) {
+  const drug = Store.findDrug(rx.drugId);
+  const patient = Store.findPatient(rx.patientId);
+  const body = `
+    <div class="alert red" style="margin-bottom:14px"><span>🛑</span>
+      <div><b>This fill loses money</b><br>${patient.first} ${patient.last} · ${drug.name} ${drug.strength} · qty ${rx.qty}</div></div>
+    <dl class="kvs">
+      <dt>Expected reimbursement</dt><dd>${money(pe.reimbursement)}</dd>
+      <dt>Acquisition cost</dt><dd>${money(pe.cost)}</dd>
+      <dt>Est. DIR clawback</dt><dd style="color:var(--danger)">−${money(pe.dir)}</dd>
+      <dt>Projected net</dt><dd style="color:var(--danger)"><b>−${money(Math.abs(pe.net))}</b></dd>
+    </dl>
+    <div class="alert warn" style="margin-top:12px"><span>💡</span><div>Before dispensing: ask the prescriber about a
+      higher-margin therapeutic alternative, verify the MAC price and queue a MAC appeal, or dispense and document the loss.</div></div>`;
+  const footer = `<button class="btn" id="bcCancel">Hold &amp; review</button>
+    <button class="btn danger" id="bcProceed">Dispense at a loss</button>`;
+  const m = openModal({ title: "Below-cost dispensing warning", body, footer });
+  $("#bcCancel").onclick = m.close;
+  $("#bcProceed").onclick = () => { m.close(); onProceed(); toast("Dispensed below cost — loss documented", "warn"); };
 }
 
 function showDUR(rx, findings, allergen, onProceed) {
@@ -478,24 +516,26 @@ Views.inventory = (q = "") => {
   const rows = list.map(d => {
     const low = d.stock <= d.reorder;
     const exp = daysUntil(d.expiry);
+    const pe = projectedEconomics(d, 1);
     return `<tr>
-      <td><b>${d.name}</b> ${d.strength}<div class="muted small">${d.class} · NDC ${d.ndc}</div></td>
+      <td><b class="lk" data-drug="${d.id}">${d.name}</b> ${d.strength}${pe.belowCost ? ` <span class="badge red">below cost</span>` : ""}<div class="muted small">${d.class} · NDC ${d.ndc}</div></td>
       <td>${d.form}${d.schedule ? ` <span class="badge red">C-${d.schedule}</span>` : ""}</td>
       <td>${d.stock}${low ? ` <span class="badge amber">low</span>` : ""}
         <div class="progress" style="margin-top:4px;width:90px"><span style="width:${Math.min(100, d.stock / (d.reorder * 2) * 100)}%"></span></div></td>
       <td>${d.reorder}</td>
       <td>${fmtDate(d.expiry)}${exp <= 120 ? ` <span class="badge ${exp < 60 ? "red" : "amber"}">${exp}d</span>` : ""}</td>
-      <td>${money(d.price)}</td>
+      <td>${money(d.price)}<div class="muted small" title="Net margin per unit after cost + DIR">${pe.perUnit < 0 ? "−" : ""}${money(Math.abs(pe.perUnit))}/u net</div></td>
       <td style="text-align:right;white-space:nowrap">
         <button class="btn sm" data-receive="${d.id}">Receive</button>
         ${low ? `<button class="btn sm primary" data-reorder="${d.id}">Reorder</button>` : ""}
       </td></tr>`;
   }).join("");
   return `
-    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
       ${statCard("Inventory value (cost)", money(totalValue), "💰", `${Store.inventory.length} items`, "blue")}
       ${statCard("Below reorder point", Store.inventory.filter(d => d.stock <= d.reorder).length, "📉", "Action needed", "amber")}
       ${statCard("Expiring ≤120 days", Store.inventory.filter(d => daysUntil(d.expiry) <= 120).length, "⏳", "Check shelves", "red")}
+      ${statCard("Below-cost SKUs", Store.inventory.filter(d => projectedEconomics(d, 1).belowCost).length, "🔻", "reimbursed under cost", "red")}
     </div>
     <div class="card">
       <div class="section-head"><h2>Formulary & stock</h2>
@@ -734,7 +774,7 @@ Views.claims = () => {
     const d = rx ? Store.findDrug(rx.drugId) : null;
     const badge = c.status === "paid" ? "green" : c.status === "rejected" ? "red" : "gray";
     return `<tr>
-      <td><b>${c.id}</b><div class="muted small">${c.rxId}</div></td>
+      <td><b class="lk" data-claim="${c.id}">${c.id}</b><div class="muted small">${c.rxId}</div></td>
       <td>${p ? p.first + " " + p.last : "—"}<div class="muted small">${d ? d.name + " " + d.strength : ""}</div></td>
       <td>${c.payer}<div class="muted small">BIN ${c.bin} · PCN ${c.pcn}</div></td>
       <td>${money(c.billed)}</td>
@@ -906,7 +946,7 @@ Views.reimbursement = () => {
       action = `<span class="muted small">—</span>`;
     }
     return `<tr>
-      <td><b>${e.drug ? e.drug.name + " " + e.drug.strength : c.rxId}</b><div class="muted small">${c.payer}</div></td>
+      <td><b class="lk" data-claim="${c.id}">${e.drug ? e.drug.name + " " + e.drug.strength : c.rxId}</b><div class="muted small">${c.payer}</div></td>
       <td>${money(e.reimbursement)}</td>
       <td>${money(e.acquisitionCost)}</td>
       <td style="color:var(--danger)">−${money(e.dirFee)}</td>
@@ -975,7 +1015,7 @@ Views.audits = () => {
     const sb = a.status === "open" ? "red" : a.status === "responded" ? "amber" : "gray";
     const due = daysUntil(a.due);
     return `<tr>
-      <td><b>${a.id}</b><div class="muted small">${a.pbm} · ${a.type}</div></td>
+      <td><b class="lk" data-audit="${a.id}">${a.id}</b><div class="muted small">${a.pbm} · ${a.type}</div></td>
       <td>${escapeHtml(a.reason)}<div class="muted small">${escapeHtml(a.action)}</div></td>
       <td>${a.claims}</td>
       <td>${money(a.amountAtRisk - a.recouped)}<div class="muted small">${money(a.recouped)} recouped</div></td>
@@ -1034,7 +1074,7 @@ Views.compliance = () => {
     const badge = d < 0 ? "red" : d <= 30 ? "red" : d <= 60 ? "amber" : "green";
     const lbl = d < 0 ? `expired ${-d}d ago` : `${d}d left`;
     return `<tr>
-      <td><b>${c.name}</b><div class="muted small">${c.holder}</div></td>
+      <td><b class="lk" data-cred="${c.id}">${c.name}</b><div class="muted small">${c.holder}</div></td>
       <td>${c.authority}</td>
       <td class="small">${c.number}</td>
       <td>${fmtDate(c.expires)} <span class="badge ${badge}">${lbl}</span></td>
@@ -1072,6 +1112,353 @@ function renewCredential(id) {
   Store.commit();
   toast(`${c.name} renewed → ${fmtDate(c.expires)}`);
   render();
+}
+
+/* ---------- shared utilities: projections, downloads, detail modals ---------- */
+function projectedEconomics(drug, qty) {
+  const expReimb = drug.expReimb != null ? drug.expReimb : drug.price;
+  const reimbursement = qty * expReimb;
+  const cost = qty * drug.cost;
+  const dir = reimbursement * (drug.dirRate || 0);
+  const net = reimbursement - cost - dir;
+  return { reimbursement, cost, dir, net, perUnit: qty ? net / qty : 0,
+    belowCost: reimbursement < cost, underwater: net < 0 };
+}
+
+function downloadFile(filename, content, mime) {
+  try {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+  } catch (e) { toast("Download not supported in this context", "err"); }
+}
+function toCSV(cols, rows) {
+  const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+  return [cols.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))].join("\r\n");
+}
+function reportHTML(title, cols, rows, summary) {
+  const th = cols.map(c => `<th>${escapeHtml(c)}</th>`).join("");
+  const tr = rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+<style>body{font-family:Arial,Helvetica,sans-serif;margin:32px;color:#16202b}
+h1{font-size:20px;margin:0 0 2px}.sub{color:#6b7a8d;font-size:12px;margin-bottom:16px}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #d8dee5;padding:6px 8px;text-align:left}
+th{background:#0f3b34;color:#fff}tr:nth-child(even) td{background:#f6f9fa}
+.sum{margin:14px 0;padding:12px 14px;background:#f4f7f9;border-radius:8px;font-size:13px}
+.sum b{color:#0a5f54}.ft{margin-top:22px;color:#94a3b8;font-size:11px}
+@media print{body{margin:0}}</style></head>
+<body><h1>PharmaDesk &middot; ${escapeHtml(title)}</h1>
+<div class="sub">Generated ${fmtDate(TODAY)} &middot; PharmaDesk Pharmacy &middot; <b>DEMONSTRATION DATA</b></div>
+<div class="sum">${summary.map(s => `<div>${escapeHtml(s)}</div>`).join("")}</div>
+<table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>
+<div class="ft">Generated by PharmaDesk — demonstration only; not for real reimbursement submission.</div>
+</body></html>`;
+}
+function detailModal(title, kv, extra = "") {
+  const rows = Object.entries(kv).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  openModal({
+    title, size: "lg",
+    body: `<dl class="kvs">${rows}</dl>${extra}`,
+    footer: `<button class="btn" onclick="document.getElementById('modalRoot').innerHTML=''">Close</button>`
+  });
+}
+
+/* click-into detail modals */
+function drugDetail(id) {
+  const d = Store.findDrug(id);
+  const pe = projectedEconomics(d, 1);
+  const onHandValue = d.stock * d.cost;
+  const scripts = Store.prescriptions.filter(r => r.drugId === id);
+  detailModal(`${d.name} ${d.strength}`, {
+    "NDC": d.ndc, "Class": d.class, "Form": d.form,
+    "Schedule": d.schedule ? `C-${d.schedule}` : "Non-controlled",
+    "On hand": `${d.stock} (reorder ≤ ${d.reorder})`,
+    "Acquisition cost": money(d.cost) + " / unit",
+    "Expected reimbursement": money(d.expReimb) + " / unit",
+    "Est. DIR rate": Math.round((d.dirRate || 0) * 100) + "%",
+    "Net margin / unit": (pe.net < 0 ? "−" : "") + money(Math.abs(pe.perUnit)) +
+      (pe.belowCost ? ` <span class="badge red">below cost</span>` : pe.underwater ? ` <span class="badge red">underwater after DIR</span>` : ` <span class="badge green">profitable</span>`),
+    "Inventory value (cost)": money(onHandValue),
+    "Expiry": `${fmtDate(d.expiry)} (${daysUntil(d.expiry)}d)`,
+    "Scripts on file": scripts.length
+  });
+}
+function claimDetail(id) {
+  const c = Store.claims.find(x => x.id === id);
+  const e = claimEconomics(c);
+  const p = e.rx ? Store.findPatient(e.rx.patientId) : null;
+  detailModal(`Claim ${c.id}`, {
+    "Prescription": c.rxId,
+    "Patient": p ? `${p.first} ${p.last}` : "—",
+    "Drug": e.drug ? `${e.drug.name} ${e.drug.strength}` : "—",
+    "Payer": `${c.payer}`,
+    "BIN / PCN": `${c.bin} / ${c.pcn}`,
+    "Status": `<span class="badge ${c.status === "paid" ? "green" : c.status === "rejected" ? "red" : "gray"}">${c.status}</span>`,
+    "Billed": money(c.billed),
+    "Plan paid": money(c.paid),
+    "Patient copay": money(c.copay),
+    "Reimbursement": money(e.reimbursement),
+    "Acquisition cost": money(e.acquisitionCost),
+    "DIR fee": "−" + money(e.dirFee),
+    "Net": `<b style="color:var(--${e.net < 0 ? "danger" : "ok"})">${e.net < 0 ? "−" : ""}${money(Math.abs(e.net))}</b>`,
+    "MAC appeal": c.appealStatus + (c.recovered ? ` (recovered ${money(c.recovered)})` : ""),
+    "Reject code": c.rejectCode || "—"
+  });
+}
+function auditDetail(id) {
+  const a = Store.audits.find(x => x.id === id);
+  detailModal(`Audit ${a.id}`, {
+    "PBM": a.pbm, "Type": a.type,
+    "Status": `<span class="badge ${a.status === "open" ? "red" : a.status === "responded" ? "amber" : "gray"}">${a.status}</span>`,
+    "Opened": fmtDate(a.started), "Response due": `${fmtDate(a.due)} (${daysUntil(a.due)}d)`,
+    "Claims under review": a.claims,
+    "Amount at risk": money(a.amountAtRisk),
+    "Recouped": money(a.recouped),
+    "Net exposure": money(a.amountAtRisk - a.recouped),
+    "Reason": escapeHtml(a.reason),
+    "Next step": escapeHtml(a.action)
+  });
+}
+function credentialDetail(id) {
+  const c = Store.credentials.find(x => x.id === id);
+  const d = daysUntil(c.expires);
+  detailModal(c.name, {
+    "Holder": c.holder, "Issuing authority": c.authority, "Number": c.number,
+    "Expires": `${fmtDate(c.expires)} <span class="badge ${d < 0 ? "red" : d <= 60 ? "amber" : "green"}">${d < 0 ? "expired" : d + "d left"}</span>`,
+    "Annual renewal cost": c.renewalCost ? money(c.renewalCost) : "—"
+  });
+}
+
+/* ---------- Report Center ---------- */
+const REPORTS = {
+  reimbursement: {
+    ico: "💵", title: "Reimbursement Reconciliation",
+    desc: "Every claim with plan paid, copay, drug cost, DIR fee and true net margin.",
+    build() {
+      const cols = ["Claim", "Date", "Patient", "Drug", "Payer", "Reimbursed", "Drug cost", "DIR fee", "Net", "Status"];
+      const rows = Store.claims.map(c => {
+        const e = claimEconomics(c); const rx = e.rx;
+        const p = rx ? Store.findPatient(rx.patientId) : null;
+        return [c.id, rx ? fmtDate(rx.dispensedOn || rx.written) : "—", p ? `${p.first} ${p.last}` : "—",
+          e.drug ? `${e.drug.name} ${e.drug.strength}` : c.rxId, c.payer,
+          money(e.reimbursement), money(e.acquisitionCost), money(e.dirFee),
+          (e.net < 0 ? "-" : "") + money(Math.abs(e.net)), c.status];
+      });
+      const net = Store.claims.filter(c => c.status !== "rejected").reduce((s, c) => s + claimEconomics(c).net, 0);
+      const dir = Store.claims.reduce((s, c) => s + claimEconomics(c).dirFee, 0);
+      return { cols, rows, summary: [`Claims reconciled: ${Store.claims.length}`, `Total DIR clawbacks: ${money(dir)}`, `Net after cost + DIR: ${(net < 0 ? "-" : "") + money(Math.abs(net))}`] };
+    }
+  },
+  underwater: {
+    ico: "🔻", title: "Below-Cost / Underwater Claims",
+    desc: "Claims that lost money — the basis for MAC appeals and reimbursement disputes.",
+    build() {
+      const cols = ["Claim", "Drug", "Payer", "Reimbursed", "Drug cost", "DIR fee", "Net loss", "MAC eligible", "Appeal"];
+      const items = Store.claims.map(c => ({ c, e: claimEconomics(c) })).filter(x => x.e.underwater);
+      const rows = items.map(({ c, e }) => [c.id, e.drug ? `${e.drug.name} ${e.drug.strength}` : c.rxId, c.payer,
+        money(e.reimbursement), money(e.acquisitionCost), money(e.dirFee),
+        "-" + money(Math.abs(e.net)), e.macEligible ? "Yes" : "No (DIR-driven)", c.appealStatus]);
+      const loss = items.reduce((s, x) => s + x.e.net, 0);
+      return { cols, rows, summary: [`Underwater claims: ${items.length}`, `Total loss: -${money(Math.abs(loss))}`, `MAC-appeal eligible: ${items.filter(x => x.e.macEligible).length}`] };
+    }
+  },
+  dir: {
+    ico: "🩸", title: "DIR Fee Summary",
+    desc: "Retroactive DIR / price-concession clawbacks assessed by each PBM.",
+    build() {
+      const cols = ["Claim", "Drug", "Payer", "Reimbursed", "DIR fee", "DIR % of reimb."];
+      const items = Store.claims.map(c => ({ c, e: claimEconomics(c) })).filter(x => x.e.dirFee > 0);
+      const rows = items.map(({ c, e }) => [c.id, e.drug ? e.drug.name : c.rxId, c.payer,
+        money(e.reimbursement), money(e.dirFee), e.reimbursement ? Math.round(e.dirFee / e.reimbursement * 100) + "%" : "—"]);
+      const dir = items.reduce((s, x) => s + x.e.dirFee, 0);
+      return { cols, rows, summary: [`Claims with DIR: ${items.length}`, `Total DIR clawbacks: ${money(dir)}`] };
+    }
+  },
+  controlled: {
+    ico: "🔒", title: "Controlled Substance Register",
+    desc: "Dispensing log of all DEA C-II through C-V medications.",
+    build() {
+      const cols = ["Date", "Rx", "Patient", "Drug", "Schedule", "Qty", "Prescriber"];
+      const rows = Store.prescriptions.filter(r => r.status === "dispensed" && Store.findDrug(r.drugId)?.schedule > 0)
+        .map(r => { const d = Store.findDrug(r.drugId), p = Store.findPatient(r.patientId);
+          return [fmtDate(r.dispensedOn), r.id, `${p.first} ${p.last}`, `${d.name} ${d.strength}`, `C-${d.schedule}`, r.qty, r.prescriber]; });
+      return { cols, rows, summary: [`Controlled dispenses: ${rows.length}`] };
+    }
+  },
+  sales: {
+    ico: "📈", title: "Sales & Margin Summary",
+    desc: "Dispensed scripts with revenue, cost of goods and gross margin.",
+    build() {
+      const cols = ["Date", "Rx", "Drug", "Qty", "Revenue", "Cost", "Gross margin"];
+      const disp = Store.prescriptions.filter(r => r.status === "dispensed");
+      const rows = disp.map(r => { const d = Store.findDrug(r.drugId);
+        const rev = r.qty * d.price, cost = r.qty * d.cost;
+        return [fmtDate(r.dispensedOn), r.id, `${d.name} ${d.strength}`, r.qty, money(rev), money(cost), money(rev - cost)]; });
+      const rev = disp.reduce((s, r) => s + r.qty * Store.findDrug(r.drugId).price, 0);
+      const cogs = disp.reduce((s, r) => s + r.qty * Store.findDrug(r.drugId).cost, 0);
+      return { cols, rows, summary: [`Scripts: ${disp.length}`, `Revenue: ${money(rev)}`, `COGS: ${money(cogs)}`, `Gross profit: ${money(rev - cogs)}`] };
+    }
+  },
+  inventory: {
+    ico: "📦", title: "Inventory Valuation & Margin",
+    desc: "On-hand value, reorder status, expiry, and per-unit margin (flags below-cost SKUs).",
+    build() {
+      const cols = ["Drug", "On hand", "Reorder pt", "Cost/unit", "Reimb/unit", "Margin/unit", "Value", "Expiry", "Flag"];
+      const rows = Store.inventory.map(d => { const pe = projectedEconomics(d, 1);
+        return [`${d.name} ${d.strength}`, d.stock, d.reorder, money(d.cost), money(d.expReimb),
+          (pe.perUnit < 0 ? "-" : "") + money(Math.abs(pe.perUnit)), money(d.stock * d.cost), fmtDate(d.expiry),
+          pe.belowCost ? "BELOW COST" : d.stock <= d.reorder ? "REORDER" : daysUntil(d.expiry) <= 120 ? "EXPIRING" : "OK"]; });
+      const val = Store.inventory.reduce((s, d) => s + d.stock * d.cost, 0);
+      const below = Store.inventory.filter(d => projectedEconomics(d, 1).belowCost).length;
+      return { cols, rows, summary: [`SKUs: ${Store.inventory.length}`, `Inventory value (cost): ${money(val)}`, `Below-cost SKUs: ${below}`] };
+    }
+  },
+  audit: {
+    ico: "📋", title: "Audit Response Packet",
+    desc: "Active and past PBM/DEA audits with exposure and recoupment.",
+    build() {
+      const cols = ["Audit", "PBM", "Type", "Status", "Claims", "At risk", "Recouped", "Due", "Reason"];
+      const rows = Store.audits.map(a => [a.id, a.pbm, a.type, a.status, a.claims,
+        money(a.amountAtRisk), money(a.recouped), fmtDate(a.due), a.reason]);
+      const risk = Store.audits.filter(a => a.status !== "closed").reduce((s, a) => s + (a.amountAtRisk - a.recouped), 0);
+      return { cols, rows, summary: [`Audits: ${Store.audits.length}`, `Open exposure: ${money(risk)}`] };
+    }
+  },
+  compliance: {
+    ico: "📂", title: "Compliance & Credentials",
+    desc: "Licenses, registrations and insurance with renewal status.",
+    build() {
+      const cols = ["Credential", "Holder", "Authority", "Number", "Expires", "Days left", "Renewal cost"];
+      const rows = [...Store.credentials].sort((a, b) => a.expires.localeCompare(b.expires))
+        .map(c => [c.name, c.holder, c.authority, c.number, fmtDate(c.expires), daysUntil(c.expires), c.renewalCost ? money(c.renewalCost) : "—"]);
+      const soon = Store.credentials.filter(c => daysUntil(c.expires) <= 60).length;
+      return { cols, rows, summary: [`Credentials: ${Store.credentials.length}`, `Due ≤60 days: ${soon}`] };
+    }
+  }
+};
+
+Views.reportcenter = () => {
+  const packetItems = Store.claims.map(c => ({ c, e: claimEconomics(c) })).filter(x => x.e.underwater || x.e.macEligible);
+  const packetLoss = packetItems.reduce((s, x) => s + Math.min(0, x.e.net), 0);
+  const cards = Object.entries(REPORTS).map(([key, r]) => {
+    const b = r.build();
+    return `<div class="card report-card">
+      <div class="rc-top"><span class="rc-ico">${r.ico}</span><h3>${r.title}</h3></div>
+      <p class="muted small">${r.desc}</p>
+      <div class="muted small rc-count">${b.rows.length} row(s)</div>
+      <div class="rc-actions">
+        <button class="btn sm primary" data-report="${key}">Preview</button>
+        <button class="btn sm" data-report-csv="${key}">CSV</button>
+        <button class="btn sm" data-report-html="${key}">Printable</button>
+      </div></div>`;
+  }).join("");
+  return `
+    <div class="card packet-card" style="margin-bottom:18px">
+      <div class="section-head"><h2>📦 Reimbursement submission packet</h2>
+        <span class="badge ${packetItems.length ? "red" : "green"}">${packetItems.length} claim(s) · ${money(Math.abs(packetLoss))} recoverable</span></div>
+      <p class="muted">One click consolidates every below-cost / MAC-appealable claim into a clean, formatted packet —
+        cover summary, per-claim detail, and appeal language — ready to send to the PBM.</p>
+      <div class="row">
+        <button class="btn primary" data-packet="preview">👁 Preview packet</button>
+        <button class="btn" data-packet="download">⬇ Prepare &amp; download (printable)</button>
+        <button class="btn" data-packet="csv">⬇ Claim data (CSV)</button>
+      </div>
+    </div>
+    <div class="section-head"><h2>Report library</h2>
+      <span class="muted small">Preview to review, then export clean CSV or a printable, send-ready document.</span></div>
+    <div class="grid-3 report-grid">${cards}</div>`;
+};
+
+function previewReport(key) {
+  const r = REPORTS[key]; const b = r.build();
+  const body = `<div class="alert info" style="margin-bottom:12px"><span>🧮</span><div>${escapeHtml(r.desc)}</div></div>
+    <div class="tag-list">${b.summary.map(s => `<span class="badge gray">${escapeHtml(s)}</span>`).join(" ")}</div>
+    <div class="table-wrap" style="margin-top:12px;max-height:48vh;overflow:auto"><table>
+      <thead><tr>${b.cols.map(c => `<th>${escapeHtml(c)}</th>`).join("")}</tr></thead>
+      <tbody>${b.rows.map(row => `<tr>${row.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")
+        || `<tr><td colspan="${b.cols.length}" class="empty">No rows.</td></tr>`}</tbody>
+    </table></div>`;
+  const footer = `<button class="btn" id="dlCsv">⬇ CSV</button>
+    <button class="btn primary" id="dlHtml">⬇ Printable (send-ready)</button>`;
+  const m = openModal({ title: r.title, body, footer, size: "lg" });
+  $("#dlCsv").onclick = () => downloadReportCSV(key);
+  $("#dlHtml").onclick = () => downloadReportHTML(key);
+}
+function downloadReportCSV(key) {
+  const r = REPORTS[key], b = r.build();
+  downloadFile(`pharmadesk-${key}.csv`, toCSV(b.cols, b.rows), "text/csv");
+  toast(`${r.title} — CSV downloaded`);
+}
+function downloadReportHTML(key) {
+  const r = REPORTS[key], b = r.build();
+  downloadFile(`pharmadesk-${key}.html`, reportHTML(r.title, b.cols, b.rows, b.summary), "text/html");
+  toast(`${r.title} — printable downloaded`);
+}
+
+/* Reimbursement submission packet — consolidate, clean, prepare-to-send */
+function buildPacket() {
+  const items = Store.claims.map(c => ({ c, e: claimEconomics(c) })).filter(x => x.e.underwater || x.e.macEligible);
+  const totalLoss = items.reduce((s, x) => s + Math.min(0, x.e.net), 0);
+  const cols = ["Claim", "Drug", "Payer", "BIN/PCN", "Acq. cost", "Reimbursed", "DIR fee", "Net", "Basis for appeal"];
+  const rows = items.map(({ c, e }) => [c.id, e.drug ? `${e.drug.name} ${e.drug.strength}` : c.rxId, c.payer,
+    `${c.bin}/${c.pcn}`, money(e.acquisitionCost), money(e.reimbursement), money(e.dirFee),
+    (e.net < 0 ? "-" : "") + money(Math.abs(e.net)),
+    e.macEligible ? "MAC price reimbursed below acquisition cost" : "DIR clawback exceeds dispensing margin"]);
+  return { items, totalLoss, cols, rows };
+}
+function packetHTML() {
+  const { items, totalLoss, cols, rows } = buildPacket();
+  const th = cols.map(c => `<th>${escapeHtml(c)}</th>`).join("");
+  const tr = rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Reimbursement Submission Packet</title>
+<style>body{font-family:Arial,Helvetica,sans-serif;margin:36px;color:#16202b;line-height:1.5}
+h1{font-size:22px;margin:0 0 2px;color:#0a5f54}.sub{color:#6b7a8d;font-size:12px;margin-bottom:20px}
+.box{background:#f4f7f9;border-radius:8px;padding:14px 16px;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}
+th,td{border:1px solid #d8dee5;padding:6px 8px;text-align:left}th{background:#0f3b34;color:#fff}
+tr:nth-child(even) td{background:#f6f9fa}.ft{margin-top:26px;color:#94a3b8;font-size:11px}
+@media print{body{margin:0}}</style></head><body>
+<h1>Reimbursement Review &amp; MAC Appeal Submission</h1>
+<div class="sub">PharmaDesk Pharmacy &middot; NCPDP •••118 &middot; Prepared ${fmtDate(TODAY)} &middot; <b>DEMONSTRATION DATA</b></div>
+<p>To whom it may concern,</p>
+<p>The following <b>${items.length}</b> claim(s) were reimbursed below our documented acquisition cost or rendered
+unprofitable by retroactive DIR fees. We respectfully request a MAC price review and reimbursement adjustment for each,
+totaling <b>${money(Math.abs(totalLoss))}</b> in losses. Acquisition cost is supported by attached wholesaler invoices.</p>
+<div class="box"><b>Summary</b><br>Claims submitted: ${items.length}<br>
+MAC-appeal eligible: ${items.filter(x => x.e.macEligible).length}<br>
+Total documented loss: ${money(Math.abs(totalLoss))}</div>
+<table><thead><tr>${th}</tr></thead><tbody>${tr || `<tr><td colspan="${cols.length}">No qualifying claims.</td></tr>`}</tbody></table>
+<p style="margin-top:18px">Please confirm receipt and provide a determination per the plan's MAC appeal timeline.</p>
+<p>Respectfully,<br>K. Adeyemi, PharmD — Pharmacist in Charge</p>
+<div class="ft">Generated by PharmaDesk — demonstration only; not for real reimbursement submission.</div>
+</body></html>`;
+}
+function packetAction(kind) {
+  const { items, totalLoss, cols, rows } = buildPacket();
+  if (kind === "csv") {
+    downloadFile("pharmadesk-reimbursement-packet.csv", toCSV(cols, rows), "text/csv");
+    toast("Reimbursement packet CSV downloaded");
+  } else if (kind === "download") {
+    downloadFile("pharmadesk-reimbursement-submission-packet.html", packetHTML(), "text/html");
+    toast("Submission packet downloaded — open & print to PDF");
+  } else {
+    const body = `<div class="alert ${items.length ? "red" : "info"}" style="margin-bottom:12px"><span>📦</span>
+      <div>Consolidated <b>${items.length}</b> appealable claim(s) · recoverable <b>${money(Math.abs(totalLoss))}</b>.
+      Download to send to the PBM.</div></div>
+      <div class="table-wrap" style="max-height:46vh;overflow:auto"><table>
+        <thead><tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")
+          || `<tr><td colspan="${cols.length}" class="empty">No appealable claims right now.</td></tr>`}</tbody>
+      </table></div>`;
+    const footer = `<button class="btn" id="pkCsv">⬇ CSV</button>
+      <button class="btn primary" id="pkHtml">⬇ Prepare &amp; download</button>`;
+    const m = openModal({ title: "Reimbursement submission packet", body, footer, size: "lg" });
+    $("#pkCsv").onclick = () => packetAction("csv");
+    $("#pkHtml").onclick = () => packetAction("download");
+  }
 }
 
 /* ============================================================
@@ -1132,6 +1519,16 @@ function wireView() {
   $$("[data-audit-fix]").forEach(b => b.onclick = () => resolveAuditGap(b.dataset.auditFix));
   // compliance
   $$("[data-renew]").forEach(b => b.onclick = () => renewCredential(b.dataset.renew));
+  // report center
+  $$("[data-report]").forEach(b => b.onclick = () => previewReport(b.dataset.report));
+  $$("[data-report-csv]").forEach(b => b.onclick = () => downloadReportCSV(b.dataset.reportCsv));
+  $$("[data-report-html]").forEach(b => b.onclick = () => downloadReportHTML(b.dataset.reportHtml));
+  $$("[data-packet]").forEach(b => b.onclick = () => packetAction(b.dataset.packet));
+  // click-into detail modals
+  $$("[data-drug]").forEach(b => b.onclick = () => drugDetail(b.dataset.drug));
+  $$("[data-claim]").forEach(b => b.onclick = () => claimDetail(b.dataset.claim));
+  $$("[data-audit]").forEach(b => b.onclick = () => auditDetail(b.dataset.audit));
+  $$("[data-cred]").forEach(b => b.onclick = () => credentialDetail(b.dataset.cred));
 }
 
 function restoreFocus(id, val) {

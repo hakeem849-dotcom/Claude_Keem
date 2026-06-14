@@ -201,6 +201,24 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); bor
 .bar { width: 100%; background: linear-gradient(180deg, var(--brand), var(--brand-d)); border-radius: 6px 6px 0 0; min-height: 4px; }
 .bar-lbl { font-size: 11px; color: var(--muted); }
 
+/* Clickable affordances */
+.stat.clickable { cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s; }
+.stat.clickable:hover { border-color: var(--brand); box-shadow: 0 6px 18px rgba(13,125,110,.16); transform: translateY(-2px); }
+.stat.clickable::after { content: "›"; float: right; color: var(--brand); font-size: 18px; margin-top: -22px; opacity: .6; }
+.lk { color: var(--brand-d); cursor: pointer; font-weight: 600; border-bottom: 1px dashed rgba(13,125,110,.45); }
+.lk:hover { color: var(--brand); border-bottom-style: solid; }
+
+/* Report Center */
+.report-grid { align-items: stretch; }
+.report-card { display: flex; flex-direction: column; gap: 8px; }
+.report-card .rc-top { display: flex; align-items: center; gap: 10px; }
+.report-card h3 { margin: 0; font-size: 15px; }
+.report-card .rc-ico { font-size: 22px; }
+.report-card p { flex: 1; margin: 0; }
+.report-card .rc-count { margin-bottom: 4px; }
+.report-card .rc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.packet-card { background: linear-gradient(180deg, #f1faf8, #ffffff); border-color: #bfe3da; }
+
 @media (max-width: 1000px) {
   #app { grid-template-columns: 1fr; }
   .main { padding-bottom: 78px; } /* clear the fixed bottom nav */

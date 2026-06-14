@@ -70,8 +70,8 @@ test/smoke.js               # headless tests
     (`Views.dashboard`, `Views.prescriptions`, `Views.patients`,
     `Views.inventory`, `Views.interactions`, `Views.claims`,
     `Views.reimbursement`, `Views.refills`, `Views.controlled`,
-    `Views.immunizations`, `Views.audits`, `Views.compliance`, `Views.reports`).
-    Each returns an **HTML string**.
+    `Views.immunizations`, `Views.audits`, `Views.compliance`,
+    `Views.reportcenter`, `Views.reports`). Each returns an **HTML string**.
   - `render()` sets `#view`'s innerHTML to `Views[currentView]()` then calls
     `wireView()` to attach event handlers (via `data-*` attributes).
   - `navigate(view)` switches the active view; nav buttons in `index.html` carry
@@ -103,6 +103,21 @@ test/smoke.js               # headless tests
   `auditReadiness` (control checklist; `resolveAuditGap()` closes a gap).
 - **Compliance:** `credentials` with `expires`; `renewCredential()` pushes the
   date out one year. Expiry coloring keyed off `daysUntil()`.
+- **Projected margin / below-cost guard:** `projectedEconomics(drug, qty)` uses
+  the drug's `expReimb` and `dirRate` to return `{reimbursement, cost, dir, net,
+  perUnit, belowCost, underwater}`. `commitAdvance()` routes a dispense through
+  `showBelowCostWarning()` when `net < 0`, then `doDispense()`.
+- **Report Center:** `REPORTS` is a map of `{ico, title, desc, build()}` where
+  `build()` returns `{cols, rows, summary}`. `previewReport`/`downloadReportCSV`
+  (`toCSV`) / `downloadReportHTML` (`reportHTML`) render & export. `buildPacket()`
+  + `packetHTML()` + `packetAction()` produce the reimbursement submission packet.
+  Add a report by adding one entry to `REPORTS` — the card grid is generated.
+- **Detail modals:** `detailModal(title, kvObject, extraHtml)` is the shared
+  drill-in. `drugDetail`/`claimDetail`/`auditDetail`/`credentialDetail` use it;
+  rows expose them via `class="lk" data-drug|claim|audit|cred`. `statCard(...,
+  goView)` makes a KPI clickable (navigates to `goView`).
+- **Downloads:** `downloadFile(name, content, mime)` (Blob + anchor) — works from
+  http(s) and `file://`.
 - **Refills/Adherence:** refill-due dates derived from `dispensedOn + daysSupply`;
   `pdc` (Proportion of Days Covered) per maintenance med; MTM task list.
 

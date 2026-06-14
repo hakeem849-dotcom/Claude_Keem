@@ -49,10 +49,11 @@ let failures = 0;
   global.window = { addEventListener: () => {} };
   global.confirm = () => true;
 
-  const { Views } = new Function(read("js/data.js") + "\n" + read("js/app.js") + "\n; return { Views };")();
+  const { Views, REPORTS, buildPacket } = new Function(
+    read("js/data.js") + "\n" + read("js/app.js") + "\n; return { Views, REPORTS, buildPacket };")();
   const names = ["dashboard", "prescriptions", "patients", "inventory", "interactions",
     "claims", "reimbursement", "refills", "controlled", "immunizations", "audits",
-    "compliance", "reports"];
+    "compliance", "reportcenter", "reports"];
   for (const n of names) {
     try {
       const html = Views[n]();
@@ -61,6 +62,24 @@ let failures = 0;
     } catch (e) {
       console.error(`✗ view failed: ${n} -> ${e.message}`); failures++;
     }
+  }
+
+  // exercise every report builder + the reimbursement packet
+  for (const key of Object.keys(REPORTS)) {
+    try {
+      const b = REPORTS[key].build();
+      if (!Array.isArray(b.cols) || !Array.isArray(b.rows)) throw new Error("bad shape");
+      console.log(`✓ report builds: ${key} (${b.rows.length} rows)`);
+    } catch (e) {
+      console.error(`✗ report failed: ${key} -> ${e.message}`); failures++;
+    }
+  }
+  try {
+    const pk = buildPacket();
+    if (!Array.isArray(pk.rows)) throw new Error("bad packet");
+    console.log(`✓ reimbursement packet builds (${pk.rows.length} claims)`);
+  } catch (e) {
+    console.error(`✗ packet failed -> ${e.message}`); failures++;
   }
 })();
 
