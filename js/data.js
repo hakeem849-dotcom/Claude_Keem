@@ -230,6 +230,9 @@ const SEED = {
    browsers throw on localStorage access in those contexts). */
 const Store = (() => {
   const KEY = "pharmadesk.v1";
+  // Bump SCHEMA whenever the seed shape changes so returning users with stale
+  // localStorage are re-seeded instead of rendering a broken/old dataset.
+  const SCHEMA = 3;
 
   const hasLS = (() => {
     try { const k = "__pd_test"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; }
@@ -241,9 +244,13 @@ const Store = (() => {
     if (hasLS) {
       try {
         const raw = localStorage.getItem(KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.__schema === SCHEMA) return parsed;
+          // stale/older shape — fall through to a fresh seed
+        }
       } catch (e) { console.warn("Load failed, seeding fresh", e); }
-    } else if (memory) {
+    } else if (memory && memory.__schema === SCHEMA) {
       return memory;
     }
     return reset();
@@ -254,6 +261,7 @@ const Store = (() => {
   }
   function reset() {
     const fresh = JSON.parse(JSON.stringify(SEED));
+    fresh.__schema = SCHEMA;
     save(fresh);
     return fresh;
   }

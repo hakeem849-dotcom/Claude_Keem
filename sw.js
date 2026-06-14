@@ -1,5 +1,7 @@
-/* PharmaDesk service worker — offline-capable app shell (cache-first). */
-const CACHE = "pharmadesk-v1";
+/* PharmaDesk service worker.
+   Network-first for same-origin GETs so new deploys always show when online,
+   with a cached fallback for offline use. Bump CACHE on shipping changes. */
+const CACHE = "pharmadesk-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,9 +13,7 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -25,15 +25,16 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
+  const req = e.request;
+  if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
+  // Network-first: fetch fresh, update cache, fall back to cache when offline.
   e.respondWith(
-    caches.match(e.request).then((cached) =>
-      cached ||
-      fetch(e.request).then((resp) => {
+    fetch(req)
+      .then((resp) => {
         const copy = resp.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
         return resp;
-      }).catch(() => caches.match("./index.html"))
-    )
+      })
+      .catch(() => caches.match(req).then((r) => r || caches.match("./index.html")))
   );
 });
