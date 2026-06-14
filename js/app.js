@@ -153,7 +153,22 @@ Views.dashboard = () => {
   const credSoon = Store.credentials.filter(c => daysUntil(c.expires) <= 60);
   const credExpired = Store.credentials.filter(c => daysUntil(c.expires) < 0);
 
+  const hr = new Date().getHours();
+  const greeting = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+
   return `
+    <div class="hero">
+      <div class="hero-glow"></div>
+      <div class="hero-text">
+        <div class="hero-eyebrow">${greeting}</div>
+        <h2 class="hero-title">K. Adeyemi, PharmD</h2>
+        <p class="hero-sub">${fmtDate(TODAY)} · ${queue.length} in queue · ${ready} ready for pickup · ${alerts.length} clinical alert${alerts.length === 1 ? "" : "s"}</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn ghost" data-go="prescriptions">Open queue</button>
+        <button class="btn light" data-go="reportcenter">Report Center</button>
+      </div>
+    </div>
     <div class="stats">
       ${statCard("Rx in queue", queue.length, "℞", `${ready} ready for pickup`, "green")}
       ${statCard("Low stock items", lowStock.length, "📦", lowStock.length ? "Reorder needed" : "Stock healthy", lowStock.length ? "amber" : "green")}

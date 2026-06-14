@@ -162,6 +162,29 @@ body {
 .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
 .section-head h2 { font-size: 15.5px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
 
+/* ---------- Dashboard hero ---------- */
+.hero {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(140% 120% at 100% 0%, rgba(20,160,138,.55), transparent 55%),
+    linear-gradient(120deg, #0c322c 0%, #0e7c6b 100%);
+  color: #eafff9; border-radius: 20px; padding: 26px 28px; margin-bottom: 22px;
+  display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  box-shadow: 0 18px 40px -20px rgba(14,124,107,.7);
+}
+.hero-glow { position: absolute; right: -40px; top: -60px; width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(255,255,255,.18), transparent 70%); pointer-events: none; }
+.hero-eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #9fe0d3; font-weight: 600; }
+.hero-title { font-family: var(--serif); font-size: 28px; font-weight: 600; margin: 4px 0 6px; letter-spacing: -.01em; color: #fff; }
+.hero-sub { margin: 0; color: #c7ece4; font-size: 13.5px; font-weight: 500; }
+.hero-actions { display: flex; gap: 10px; position: relative; z-index: 1; }
+.btn.ghost { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.25); backdrop-filter: blur(4px); }
+.btn.ghost:hover { background: rgba(255,255,255,.2); }
+.btn.light { background: #fff; color: var(--brand-d); border-color: #fff; }
+.btn.light:hover { background: #eafff9; }
+
+.build-tag { font-size: 10.5px; color: #5f9a8f; letter-spacing: .04em; margin-top: 8px; }
+
 /* ---------- Stat cards ---------- */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
 .stat {
@@ -378,6 +401,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
       <div class="sidebar-foot">
         <button id="resetData" class="link-btn" title="Restore demo data">↺ Reset demo data</button>
         <div class="muted small">Mock data · for demonstration only</div>
+        <div class="build-tag">PharmaDesk · v2 · refreshed Jun 2026</div>
       </div>
     </aside>
 
@@ -851,7 +875,22 @@ Views.dashboard = () => {
   const credSoon = Store.credentials.filter(c => daysUntil(c.expires) <= 60);
   const credExpired = Store.credentials.filter(c => daysUntil(c.expires) < 0);
 
+  const hr = new Date().getHours();
+  const greeting = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+
   return `
+    <div class="hero">
+      <div class="hero-glow"></div>
+      <div class="hero-text">
+        <div class="hero-eyebrow">${greeting}</div>
+        <h2 class="hero-title">K. Adeyemi, PharmD</h2>
+        <p class="hero-sub">${fmtDate(TODAY)} · ${queue.length} in queue · ${ready} ready for pickup · ${alerts.length} clinical alert${alerts.length === 1 ? "" : "s"}</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn ghost" data-go="prescriptions">Open queue</button>
+        <button class="btn light" data-go="reportcenter">Report Center</button>
+      </div>
+    </div>
     <div class="stats">
       ${statCard("Rx in queue", queue.length, "℞", `${ready} ready for pickup`, "green")}
       ${statCard("Low stock items", lowStock.length, "📦", lowStock.length ? "Reorder needed" : "Stock healthy", lowStock.length ? "amber" : "green")}

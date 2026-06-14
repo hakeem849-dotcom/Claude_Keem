@@ -1,7 +1,7 @@
 /* PharmaDesk service worker.
    Network-first for same-origin GETs so new deploys always show when online,
    with a cached fallback for offline use. Bump CACHE on shipping changes. */
-const CACHE = "pharmadesk-v3";
+const CACHE = "pharmadesk-v4";
 const ASSETS = [
   "./",
   "./index.html",
