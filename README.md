@@ -79,3 +79,5 @@ data/seed.json    # static copy of the seed data
 
 Vanilla HTML, CSS, and JavaScript — intentionally framework-free so it runs
 anywhere with zero setup.
+
+<!-- pages redeploy 2026-06-14T01:46:51Z -->
