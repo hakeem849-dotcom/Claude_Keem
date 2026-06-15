@@ -1,5 +1,6 @@
 /* Final mobile interaction fix.
-   Owns Home and Take-a-tour taps at capture phase so mobile bottom-nav/tour clicks cannot be swallowed by older wrappers. */
+   Waits until streamlined views exist, then owns only route navigation and tour clicks.
+   It does NOT intercept normal action buttons such as Rx details, advance, reports, imports, etc. */
 (function () {
   const LABELS = {
     dashboard: "⌂ Home",
@@ -17,48 +18,21 @@
     pbmhub: "pbmhub", claimsops: "pbmhub", reimbursement: "pbmhub",
     toolshub: "toolshub", dailyclose: "toolshub", auditdefense: "toolshub", importcenter: "toolshub", sop: "toolshub", reportcenter: "toolshub", audits: "toolshub", compliance: "toolshub"
   };
-  const esc = s => String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-
-  function setCurrent(view) {
-    window.__pdView = view || "dashboard";
-    window.__pharmadeskCurrentView = window.__pdView;
-    try { currentView = window.__pdView; } catch (e) {}
-  }
-
-  function primary(view) {
-    return PRIMARY[view || window.__pdView || "dashboard"] || "dashboard";
-  }
-
-  function renderNav(activeView) {
-    const nav = document.getElementById("nav");
-    if (!nav) return;
-    const active = primary(activeView);
-    const items = [
-      ["dashboard", "⌂", "Home"],
-      ["dispensinghub", "℞", "Dispense"],
-      ["patienthub", "◉", "Patients"],
-      ["inventoryhub", "□", "Inventory"],
-      ["pbmhub", "$", "PBM"],
-      ["toolshub", "⋯", "Tools"]
-    ];
-    nav.innerHTML = items.map(([view, icon, label]) => `<button class="nav-item ${view === active ? "active" : ""}" data-view="${view}"><span class="ni-ico">${icon}</span> ${label}</button>`).join("");
-  }
-
-  function renderView(view) {
-    const target = view || "dashboard";
-    setCurrent(target);
-    const root = document.getElementById("view");
-    if (!root || !window.Views || !Views[target]) return false;
-    root.innerHTML = Views[target]();
-    const title = document.getElementById("viewTitle");
-    if (title) title.textContent = LABELS[primary(target)] || LABELS.dashboard;
-    if (typeof wireView === "function") wireView();
-    if (typeof animateCounts === "function") animateCounts(root);
-    renderNav(target);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    return true;
-  }
-
+  const FALLBACK = {
+    dispensinghub: "prescriptions",
+    patienthub: "patients",
+    inventoryhub: "inventory",
+    pbmhub: "reimbursement",
+    toolshub: "reportcenter"
+  };
+  const NAV = [
+    ["dashboard", "⌂", "Home"],
+    ["dispensinghub", "℞", "Dispense"],
+    ["patienthub", "◉", "Patients"],
+    ["inventoryhub", "□", "Inventory"],
+    ["pbmhub", "$", "PBM"],
+    ["toolshub", "⋯", "Tools"]
+  ];
   const TOUR = [
     ["dashboard", "Home", "Daily priorities, risk counts, and owner brief."],
     ["dispensinghub", "Dispensing", "Prescription queue and pharmacist review in one workflow."],
@@ -67,7 +41,47 @@
     ["pbmhub", "PBM", "Reimbursement, DIR fees, PBM networks, audits, and appeals."],
     ["toolshub", "Tools", "CSV upload, reports, daily close, SOPs, and audit packets."]
   ];
+  const esc = s => String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
+  function ready() {
+    return window.Views && Views.dashboard && Views.dispensinghub && Views.patienthub && Views.inventoryhub && Views.pbmhub && Views.toolshub;
+  }
+  function actual(view) {
+    if (window.Views && Views[view]) return view;
+    const fb = FALLBACK[view];
+    return window.Views && fb && Views[fb] ? fb : view;
+  }
+  function setCurrent(view) {
+    const target = view || "dashboard";
+    window.__pdView = target;
+    window.__pharmadeskCurrentView = target;
+    try { currentView = target; } catch (e) {}
+  }
+  function primary(view) {
+    return PRIMARY[view || window.__pdView || "dashboard"] || PRIMARY[actual(view)] || "dashboard";
+  }
+  function renderNav(activeView) {
+    const nav = document.getElementById("nav");
+    if (!nav) return;
+    const active = primary(activeView);
+    nav.innerHTML = NAV.map(([view, icon, label]) => `<button class="nav-item ${view === active ? "active" : ""}" data-view="${view}"><span class="ni-ico">${icon}</span> ${label}</button>`).join("");
+  }
+  function renderView(view) {
+    const requested = view || "dashboard";
+    const target = actual(requested);
+    if (!window.Views || !Views[target]) return false;
+    setCurrent(requested);
+    const root = document.getElementById("view");
+    if (!root) return false;
+    root.innerHTML = Views[target]();
+    const title = document.getElementById("viewTitle");
+    if (title) title.textContent = LABELS[primary(requested)] || LABELS.dashboard;
+    if (typeof wireView === "function") wireView();
+    if (typeof animateCounts === "function") animateCounts(root);
+    renderNav(requested);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return true;
+  }
   function startTour(index) {
     const i = Math.max(0, Math.min(index || 0, TOUR.length - 1));
     const [view, title, body] = TOUR[i];
@@ -90,8 +104,7 @@
     document.getElementById("mobileTourBack").onclick = () => startTour(i - 1);
     document.getElementById("mobileTourNext").onclick = () => i === TOUR.length - 1 ? modal.innerHTML = "" : startTour(i + 1);
   }
-
-  function intercept(event) {
+  function clickRouter(event) {
     const tourButton = event.target.closest && event.target.closest("#startTour");
     if (tourButton) {
       event.preventDefault();
@@ -104,12 +117,31 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       renderView(navButton.dataset.view || "dashboard");
+      return;
+    }
+    const routeButton = event.target.closest && event.target.closest("[data-go]");
+    if (routeButton) {
+      const ok = renderView(routeButton.dataset.go);
+      if (ok) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
     }
   }
-
-  document.addEventListener("click", intercept, true);
-  document.addEventListener("touchend", intercept, true);
-  window.__pharmadeskMobileRenderView = renderView;
-  window.__pharmadeskMobileTour = startTour;
-  renderNav(window.__pdView || "dashboard");
+  function boot(tries) {
+    if (!ready()) {
+      if ((tries || 0) < 80) setTimeout(() => boot((tries || 0) + 1), 50);
+      return;
+    }
+    if (!window.__pharmadeskMobileClickRouterInstalled) {
+      window.__pharmadeskMobileClickRouterInstalled = true;
+      document.addEventListener("click", clickRouter, true);
+    }
+    window.navigate = renderView;
+    window.render = () => renderView(window.__pdView || "dashboard");
+    window.__pharmadeskMobileRenderView = renderView;
+    window.__pharmadeskMobileTour = startTour;
+    renderNav(window.__pdView || "dashboard");
+  }
+  boot(0);
 })();
