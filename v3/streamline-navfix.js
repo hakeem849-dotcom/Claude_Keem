@@ -1,39 +1,25 @@
-/* PharmaDesk V3 — navigation stabilizer for streamlined five-section app. */
+/* PharmaDesk V3 — navigation stabilizer for streamlined app. */
 (function () {
   const NAV = [
-    { view: "dashboard", icon: "🏥", label: "Home" },
+    { view: "dashboard", icon: "🏠", label: "Home" },
     { view: "dispensinghub", icon: "℞", label: "Dispensing" },
     { view: "patienthub", icon: "👥", label: "Patients" },
     { view: "inventoryhub", icon: "📦", label: "Inventory" },
+    { view: "pbmhub", icon: "🧾", label: "PBM" },
     { view: "toolshub", icon: "🧰", label: "Tools" }
   ];
   const GROUP = {
-    dashboard: "dashboard",
-    workqueue: "dashboard",
-    dispensinghub: "dispensinghub",
-    clinicalops: "dispensinghub",
-    prescriptions: "dispensinghub",
-    claimsops: "dispensinghub",
-    patienthub: "patienthub",
-    careplans: "patienthub",
-    medsync: "patienthub",
-    patients: "patienthub",
-    inventoryhub: "inventoryhub",
-    purchasing: "inventoryhub",
-    inventory: "inventoryhub",
-    toolshub: "toolshub",
-    dailyclose: "toolshub",
-    auditdefense: "toolshub",
-    importcenter: "toolshub",
-    sop: "toolshub",
-    reportcenter: "toolshub"
+    dashboard: "dashboard", workqueue: "dashboard",
+    dispensinghub: "dispensinghub", clinicalops: "dispensinghub", prescriptions: "dispensinghub",
+    patienthub: "patienthub", careplans: "patienthub", medsync: "patienthub", patients: "patienthub",
+    inventoryhub: "inventoryhub", purchasing: "inventoryhub", inventory: "inventoryhub",
+    pbmhub: "pbmhub", claimsops: "pbmhub",
+    toolshub: "toolshub", dailyclose: "toolshub", auditdefense: "toolshub", importcenter: "toolshub", sop: "toolshub", reportcenter: "toolshub"
   };
-
   function currentPrimary() {
     const current = window.__pharmadeskCurrentView || "dashboard";
     return GROUP[current] || "toolshub";
   }
-
   function installNav() {
     const nav = document.getElementById("nav");
     if (!nav) return;
@@ -46,14 +32,12 @@
       };
     });
   }
-
   function updateTitle() {
     const h = document.getElementById("viewTitle");
     if (!h) return;
-    const found = NAV.find(x => x.view === currentPrimary());
-    if (found) h.textContent = `${found.icon} ${found.label}`;
+    const found = NAV.find(x => x.view === currentPrimary()) || NAV[0];
+    h.textContent = `${found.icon} ${found.label}`;
   }
-
   const baseNavigate = window.navigate;
   if (typeof baseNavigate === "function" && !window.__pharmadeskNavFixNavigateWrapped) {
     window.__pharmadeskNavFixNavigateWrapped = true;
@@ -62,7 +46,6 @@
       return baseNavigate.apply(this, arguments);
     };
   }
-
   const baseRender = window.render;
   if (typeof baseRender === "function" && !window.__pharmadeskNavFixRenderWrapped) {
     window.__pharmadeskNavFixRenderWrapped = true;
@@ -74,10 +57,18 @@
       return result;
     };
   }
-
+  function loadFinalPolish() {
+    if (window.__pharmadeskFinalPolishLoaded) return;
+    window.__pharmadeskFinalPolishLoaded = true;
+    const current = document.currentScript && document.currentScript.src || "v3/streamline-navfix.js";
+    const script = document.createElement("script");
+    script.src = current.replace(/streamline-navfix\.js(?:\?.*)?$/, "final-polish.js");
+    document.body.appendChild(script);
+  }
   try {
     installNav();
     updateTitle();
+    loadFinalPolish();
   } catch (e) {
     console.error("Streamline navigation stabilizer failed", e);
   }
