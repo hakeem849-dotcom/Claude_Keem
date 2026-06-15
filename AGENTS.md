@@ -137,6 +137,29 @@ test/smoke.js               # headless tests
 3. If it has interactive elements, wire them in `wireView()` using `data-*` hooks.
 4. Mutate through `Store` + `Store.commit()`, then call `render()`.
 
+## Link verification after app updates
+Before sending Hakeem any app URL after a code change, the agent must verify the link path and clearly state what was verified.
+
+Required checklist:
+1. Confirm the changed file exists on `main` with `GitHub.fetch_file` or equivalent.
+2. Confirm the app entry file exists on `main`:
+   - `app.html`
+   - and, if relevant, `app/index.html` or `v3/index.html`.
+3. Do not send only the GitHub Pages URL unless the agent has verified it loads after the update. GitHub Pages can lag, fail, or cache old JavaScript.
+4. Always include at least one fallback URL that reads directly from the current repo state:
+   - `https://raw.githack.com/hakeem849-dotcom/Claude_Keem/main/app.html`
+   - `https://cdn.jsdelivr.net/gh/hakeem849-dotcom/Claude_Keem@main/app.html`
+5. If GitHub Pages has not been verified live, say that explicitly and label it as possibly stale.
+6. Use a cache-busted URL when appropriate, e.g. append `?v=<short-commit-sha>` to the Pages URL.
+7. If a service worker or cached asset changed, bump the `CACHE` value in `sw.js`.
+8. Never tell the user “the link works” unless the agent actually verified a live load, not just a successful commit.
+
+Preferred final-response format after app updates:
+- “Verified repo file: yes” with the file path.
+- “Verified live Pages URL: yes/no.”
+- Give the safest working link first.
+- Give the GitHub Pages URL second if it may be cached.
+
 ## Gotchas
 - **Keep `js/data.js` (SEED) and `data/seed.json` in sync** if you change seed
   data — they are intentionally duplicated (the app can't `fetch()` JSON from a
@@ -153,3 +176,4 @@ test/smoke.js               # headless tests
 - `node build.js` runs and `dist/pharmadesk.html` updated if source changed.
 - Seed JSON kept in sync if seed data changed.
 - App still opens and navigates with no console errors.
+- Any app URL sent to the user follows the “Link verification after app updates” checklist above.
