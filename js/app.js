@@ -1540,7 +1540,8 @@ let currentView = "dashboard";
 
 function render() {
   $("#view").innerHTML = Views[currentView]();
-  $("#viewTitle").textContent = $(`.nav-item[data-view="${currentView}"]`).textContent.trim();
+  const navBtn = $(`.nav-item[data-view="${currentView}"]`);
+  if (navBtn) $("#viewTitle").textContent = navBtn.textContent.trim();
   wireView();
   animateCounts($("#view"));
 }

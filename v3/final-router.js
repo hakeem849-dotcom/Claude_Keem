@@ -28,6 +28,12 @@
   const actual = v => hasViews() && Views[v] ? v : hasViews() && fallback[v] && Views[fallback[v]] ? fallback[v] : v;
   const label = v => nav.find(x => x[0] === primary(v)) || nav[0];
 
+  // Capture the full render pipeline (streamline → import-center → view-mode →
+  // operator-upgrades → v3 → base) BEFORE we install our own router, so that
+  // navigating re-runs every layer's view wiring instead of bypassing it.
+  const pipelineRender = (typeof window.render === "function") ? window.render : null;
+  function clearModal() { const m = document.getElementById("modalRoot"); if (m) m.innerHTML = ""; }
+
   function drawNav(activeView) {
     const el = document.getElementById("nav");
     if (!el) return;
@@ -39,19 +45,33 @@
     const requested = view || "dashboard";
     const target = actual(requested);
     if (!hasViews() || !Views[target]) return false;
-    window.__pdView = requested;
-    window.__pharmadeskCurrentView = requested;
-    try { currentView = requested; } catch (e) {}
     const root = document.getElementById("view");
     if (!root) return false;
-    root.innerHTML = Views[target]();
+    window.__pdView = requested;
+    window.__pharmadeskCurrentView = requested;
+    // render the view that actually exists so the pipeline never throws
+    try { currentView = target; } catch (e) { try { window.currentView = target; } catch (e2) {} }
+    clearModal(); // never let a leftover modal/backdrop trap taps (esp. mobile nav)
+    // Run the full render pipeline so every layer re-wires its buttons.
+    if (pipelineRender) {
+      try { pipelineRender(); }
+      catch (e) {
+        console.error("pipeline render failed, using fallback", e);
+        root.innerHTML = Views[target]();
+        if (typeof wireView === "function") wireView();
+        if (typeof animateCounts === "function") animateCounts(root);
+      }
+    } else {
+      root.innerHTML = Views[target]();
+      if (typeof wireView === "function") wireView();
+      if (typeof animateCounts === "function") animateCounts(root);
+    }
+    // Own the primary bottom nav + title so they stay consistent across views.
+    drawNav(requested);
     const l = label(requested);
     const title = document.getElementById("viewTitle");
     if (title) title.textContent = `${l[1]} ${l[2]}`;
-    if (typeof wireView === "function") wireView();
-    if (typeof animateCounts === "function") animateCounts(root);
-    drawNav(requested);
-    window.scrollTo({top: 0, behavior: "smooth"});
+    window.scrollTo({ top: 0, behavior: "smooth" });
     return true;
   }
 

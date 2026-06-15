@@ -116,6 +116,8 @@
     const rank = { red: 1, amber: 2, blue: 3, green: 4 };
     return out.sort((a, b) => rank[a.priority] - rank[b.priority] || a.area.localeCompare(b.area));
   }
+  // Expose for other layers (e.g. streamline.js) that live in separate IIFEs.
+  window.taskItems = taskItems;
 
   function kpis() {
     const tasks = taskItems();

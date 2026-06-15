@@ -52,7 +52,10 @@
 
   function openTasks() {
     const done = readDoneTasks();
-    return taskItems().filter(t => !done.includes(t.id));
+    const items = (typeof window !== "undefined" && typeof window.taskItems === "function")
+      ? window.taskItems()
+      : (typeof taskItems === "function" ? taskItems() : []);
+    return items.filter(t => !done.includes(t.id));
   }
   function readDoneTasks() {
     try { return JSON.parse(localStorage.getItem("pharmadesk.v3.doneTasks")) || []; }
