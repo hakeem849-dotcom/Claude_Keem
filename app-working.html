@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PharmaDesk — Independent Pharmacy Operator App</title>
+  <meta name="description" content="Independent pharmacy operations dashboard demo." />
+  <meta name="theme-color" content="#0d7d6e" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="PharmaDesk" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="v3/v3.css" />
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">℞</span><div><div class="brand-name">PharmaDesk</div><div class="brand-sub">Operator App</div></div></div>
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-view="dashboard"><span class="ni-ico">⌂</span> Home</button>
+        <button class="nav-item" data-view="dispensinghub"><span class="ni-ico">℞</span> Dispense</button>
+        <button class="nav-item" data-view="patienthub"><span class="ni-ico">◉</span> Patients</button>
+        <button class="nav-item" data-view="inventoryhub"><span class="ni-ico">□</span> Inventory</button>
+        <button class="nav-item" data-view="pbmhub"><span class="ni-ico">$</span> PBM</button>
+        <button class="nav-item" data-view="toolshub"><span class="ni-ico">⋯</span> Tools</button>
+      </nav>
+      <div class="sidebar-foot"><button id="resetData" class="link-btn" title="Restore demo data">↺ Reset demo data</button><div class="muted small">Fictional demo data · not for patient care</div></div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <h1 id="viewTitle">⌂ Home</h1>
+        <div class="topbar-right">
+          <button class="btn sm primary" id="startTour" type="button">Take a tour</button>
+          <button class="btn sm" id="printBrief">Print brief</button>
+          <input id="globalSearch" class="search" type="search" placeholder="Search patients, drugs, Rx…" />
+          <div class="user-chip"><span class="avatar">KA</span><div class="user-meta"><div class="user-name">K. Adeyemi, PharmD</div><div class="muted small">PIC / owner-operator</div></div></div>
+        </div>
+      </header>
+      <section id="view" class="view"></section>
+    </main>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toastRoot" class="toast-root"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="v3/v3.js"></script>
+  <script src="v3/operator-upgrades.js"></script>
+  <script src="v3/view-mode.js"></script>
+  <script src="v3/import-center.js"></script>
+  <script src="v3/streamline.js"></script>
+  <script src="v3/final-polish.js"></script>
+  <script src="v3/ux-refresh.js"></script>
+  <script src="v3/final-router.js"></script>
+</body>
+</html>
