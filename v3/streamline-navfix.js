@@ -57,18 +57,19 @@
       return result;
     };
   }
-  function loadFinalPolish() {
-    if (window.__pharmadeskFinalPolishLoaded) return;
-    window.__pharmadeskFinalPolishLoaded = true;
+  function loadScriptOnce(flag, file) {
+    if (window[flag]) return;
+    window[flag] = true;
     const current = document.currentScript && document.currentScript.src || "v3/streamline-navfix.js";
     const script = document.createElement("script");
-    script.src = current.replace(/streamline-navfix\.js(?:\?.*)?$/, "final-polish.js");
+    script.src = current.replace(/streamline-navfix\.js(?:\?.*)?$/, file);
     document.body.appendChild(script);
   }
   try {
     installNav();
     updateTitle();
-    loadFinalPolish();
+    loadScriptOnce("__pharmadeskFinalPolishLoaded", "final-polish.js");
+    loadScriptOnce("__pharmadeskUxRefreshLoaded", "ux-refresh.js");
   } catch (e) {
     console.error("Streamline navigation stabilizer failed", e);
   }
