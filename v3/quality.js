@@ -16,4 +16,5 @@
   loadOnce("__pharmadeskOperatorUpgradesLoaded", "operator-upgrades.js");
   loadOnce("__pharmadeskViewModeLoaded", "view-mode.js");
   loadOnce("__pharmadeskImportCenterLoaded", "import-center.js");
+  loadOnce("__pharmadeskStreamlineLoaded", "streamline.js");
 })();
