@@ -1,1 +1,240 @@
-body{background:#f7f7f7!important;color:#111!important}.brand-mark,.avatar,.nav-item.active,.btn.primary,#startTour{background:#111!important;color:#fff!important;border-color:#111!important}.sidebar,.topbar,.card,.ops-card,.simple-hero,.simple-kpi,.tool-link{background:#fff!important;color:#111!important;border-color:#d8d8d8!important}.muted,.small{color:#666!important}.btn{background:#fff!important;color:#111!important;border-color:#d8d8d8!important}.badge{background:#f3f3f3!important;color:#111!important;border:1px solid #d8d8d8!important}.hero-glow{display:none!important}
+/* ============================================================
+   PharmaDesk — Noir
+   A disciplined black-and-white design system for the operator
+   edition. Most of the work is done by redefining the base design
+   tokens (so styles.css / v3.css inherit the monochrome palette);
+   the rest restyles each real surface with intention. Loaded last,
+   so it wins the cascade. !important is used only where the base or
+   a runtime-injected <style> hardcodes a color we must neutralize.
+   ============================================================ */
+
+:root {
+  /* ink ramp — one near-black, a true neutral gray scale */
+  --ink:      #0a0a0a;
+  --ink-2:    #3a3a3a;
+  --muted:    #767676;
+  --line:     #e6e6e6;
+  --line-2:   #efefef;
+
+  /* surfaces */
+  --bg:    #f6f6f6;
+  --panel: #ffffff;
+  --soft:  #f4f4f4;
+
+  /* brand collapses to ink so every gradient/fill reads monochrome */
+  --brand:    #0a0a0a;
+  --brand-d:  #000000;
+  --brand-l:  #2a2a2a;
+  --brand-wash: #f0f0f0;
+  --accent:   #555555;
+
+  /* severity becomes a grayscale ramp: darker = more urgent */
+  --danger: #0a0a0a;
+  --warn:   #525252;
+  --ok:     #8a8a8a;
+
+  /* depth — tight, soft, monochrome */
+  --radius:    14px;
+  --radius-sm: 10px;
+  --ring:      0 0 0 3px rgba(10,10,10,.14);
+  --shadow:    0 1px 2px rgba(0,0,0,.05), 0 8px 24px -16px rgba(0,0,0,.25);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 1px 2px rgba(0,0,0,.05), 0 14px 34px -18px rgba(0,0,0,.32);
+  --shadow-lg: 0 30px 70px -24px rgba(0,0,0,.45);
+}
+
+body { background: var(--bg) !important; color: var(--ink) !important; }
+
+/* numbers always tabular so columns and KPIs line up */
+.value, td, th, .kvs dd, .badge, .simple-kpi span, .stat .value { font-variant-numeric: tabular-nums; }
+
+/* ---------- Sidebar / nav: white canvas, ink-pill active ---------- */
+.sidebar {
+  background: var(--panel) !important;
+  color: var(--ink-2) !important;
+  border-right: 1px solid var(--line) !important;
+}
+.brand-name { color: var(--ink) !important; }
+.brand-sub  { color: var(--muted) !important; letter-spacing: .14em; }
+.brand-mark, .avatar {
+  background: var(--ink) !important; color: #fff !important;
+  box-shadow: none !important; border-radius: 12px;
+}
+.nav-item { color: var(--muted) !important; font-weight: 500; border-radius: 10px; }
+.nav-item:hover { background: var(--soft) !important; color: var(--ink) !important; }
+.nav-item.active {
+  background: var(--ink) !important; color: #fff !important; font-weight: 600;
+}
+.nav-item.active::before { display: none !important; }
+.ni-ico { opacity: .9; filter: grayscale(1); }
+.sidebar-foot { border-top: 1px solid var(--line) !important; }
+.link-btn { color: var(--muted) !important; }
+.link-btn:hover { color: var(--ink) !important; }
+.build-tag { color: var(--muted) !important; opacity: .7; }
+
+/* ---------- Topbar ---------- */
+.topbar {
+  background: rgba(255,255,255,.85) !important;
+  -webkit-backdrop-filter: saturate(120%) blur(12px);
+  backdrop-filter: saturate(120%) blur(12px);
+  border-bottom: 1px solid var(--line) !important;
+}
+.topbar h1 { color: var(--ink); letter-spacing: -.02em; }
+.user-name { color: var(--ink); }
+
+/* ---------- Cards & generic surfaces ---------- */
+.card, .ops-card, .ops-hero, .simple-kpi, .tool-link, .note-item, .protocol-step, .modal {
+  background: var(--panel) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+}
+.section-head h2, .section-head h3, .ops-card h2, .ops-card h3 { color: var(--ink); letter-spacing: -.01em; }
+.muted, .small, .action-note, .simple-row p, .simple-row small, .tool-link span { color: var(--muted) !important; }
+
+/* ---------- Hero: the single focal point — solid ink ---------- */
+.simple-hero, .ops-hero, .hero {
+  background: var(--ink) !important;
+  color: #fff !important;
+  border: 1px solid var(--ink) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 20px 50px -28px rgba(0,0,0,.6) !important;
+}
+.simple-hero h2, .ops-hero h2, .hero .hero-title, .hero h2 {
+  color: #fff !important; font-weight: 700; letter-spacing: -.02em;
+}
+.simple-hero p, .ops-hero p, .hero p, .hero .hero-sub { color: #b4b4b4 !important; }
+.hero-glow, .hero-chips, .hero-eyebrow { display: none !important; }
+/* primary action sitting on the dark hero inverts to white */
+.simple-hero .btn.primary, .ops-hero .btn.primary, .hero .btn.primary,
+.simple-hero .btn, .ops-hero .btn {
+  background: #fff !important; color: var(--ink) !important; border-color: #fff !important;
+}
+.simple-hero .btn:hover, .ops-hero .btn:hover { background: #e9e9e9 !important; }
+
+/* ---------- KPI tiles ---------- */
+.simple-kpis { gap: 14px; }
+.simple-kpi { padding: 18px !important; transition: transform .15s ease, border-color .15s ease, box-shadow .2s ease; }
+.simple-kpi:hover { transform: translateY(-2px); border-color: #cfcfcf !important; box-shadow: var(--shadow-md) !important; }
+.simple-kpi span { color: var(--ink) !important; font-weight: 800; font-size: 32px; letter-spacing: -.03em; }
+.simple-kpi b { color: var(--muted) !important; text-transform: uppercase; letter-spacing: .07em; font-size: 11px; }
+.stat .value { color: var(--ink); }
+.stat .ico { background: var(--soft) !important; filter: grayscale(1); }
+
+/* ---------- Rows / lists ---------- */
+.simple-row, .queue-row, .close-row, .order-suggestion {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  transition: border-color .14s ease, background .14s ease;
+}
+.simple-row { padding: 12px 14px; }
+.simple-row:hover, .queue-row:hover { border-color: #d4d4d4; background: #fcfcfc; }
+.simple-row b, .queue-row b { color: var(--ink); }
+
+/* priority dots: grayscale severity (solid ink = urgent → outline = calm) */
+.priority-dot { background: #c9c9c9; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.priority-dot.red   { background: var(--ink); box-shadow: none; }
+.priority-dot.amber { background: #5a5a5a; }
+.priority-dot.blue  { background: #9a9a9a; }
+.priority-dot.green { background: #fff; box-shadow: inset 0 0 0 2px #bdbdbd; }
+
+/* ---------- Badges: monochrome, meaning kept via fill vs outline ---------- */
+.badge {
+  border-radius: 999px; font-weight: 600; box-shadow: none !important;
+  background: var(--soft) !important; color: var(--ink-2) !important;
+  border: 1px solid var(--line) !important;
+}
+.badge.gray  { background: var(--soft) !important; color: #5d5d5d !important; }
+.badge.blue  { background: #ededed !important; color: #2f2f2f !important; }
+.badge.green { background: #fff !important;     color: #555 !important; border-color: #d9d9d9 !important; }
+.badge.amber { background: #fff !important;     color: var(--ink) !important; border-color: var(--ink) !important; }
+.badge.red   { background: var(--ink) !important; color: #fff !important; border-color: var(--ink) !important; }
+.badge.purple{ background: #e4e4e4 !important; color: #2f2f2f !important; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  background: var(--panel) !important; color: var(--ink) !important;
+  border: 1px solid var(--line) !important; border-radius: 10px; font-weight: 600;
+  transition: background .14s ease, border-color .14s ease, transform .04s ease;
+}
+.btn:hover { background: var(--soft) !important; border-color: #cfcfcf !important; }
+.btn:active { transform: translateY(1px); }
+.btn.primary, #startTour {
+  background: var(--ink) !important; color: #fff !important; border-color: var(--ink) !important;
+  box-shadow: none !important;
+}
+.btn.primary:hover, #startTour:hover { background: #262626 !important; }
+.btn.danger { background: #fff !important; color: var(--ink) !important; border-color: var(--ink) !important; }
+.btn.sm { border-radius: 8px; }
+
+/* ---------- Tables ---------- */
+thead th {
+  background: var(--soft) !important; color: var(--muted) !important;
+  border-bottom: 1px solid var(--line) !important; text-transform: uppercase; letter-spacing: .05em;
+}
+tbody td { border-bottom: 1px solid var(--line-2) !important; }
+tbody tr:hover { background: #fafafa !important; }
+
+/* ---------- Inputs / search ---------- */
+input, select, textarea, .search {
+  background: var(--panel) !important; color: var(--ink) !important;
+  border: 1px solid var(--line) !important; border-radius: 10px;
+}
+input:focus, select:focus, textarea:focus, .search:focus {
+  border-color: var(--ink) !important; box-shadow: var(--ring) !important; outline: none;
+}
+
+/* ---------- Misc operator surfaces → monochrome ---------- */
+.ops-banner { background: var(--soft) !important; color: var(--ink-2) !important; border-left: 4px solid var(--ink) !important; border-radius: 10px; }
+.protocol-step, .note-item { background: var(--soft) !important; border: 1px solid var(--line) !important; }
+.protocol-num { background: var(--ink) !important; color: #fff !important; }
+.tool-link { transition: border-color .14s ease, transform .14s ease, box-shadow .2s ease; }
+.tool-link:hover { border-color: var(--ink) !important; transform: translateY(-2px); box-shadow: var(--shadow-md) !important; }
+.tool-link b { color: var(--ink); }
+.patient-card:hover { border-color: var(--ink) !important; }
+.chip-row .badge { font-size: 11px; }
+
+/* economics waterfall: keep sign legible without color */
+.wf { background: var(--panel) !important; border: 1px solid var(--line) !important; color: var(--ink-2) !important; border-radius: 9px; }
+.wf.plus  { background: #fff !important; color: #555 !important; }
+.wf.minus { background: var(--soft) !important; color: var(--ink) !important; }
+.wf.total { background: var(--ink) !important; color: #fff !important; }
+.wf.total.bad, .wf.total.good { color: #fff !important; }
+
+/* alerts → monochrome with a weight cue */
+.alert { border-radius: 12px; }
+.alert.info { background: var(--soft) !important; border: 1px solid var(--line) !important; color: var(--ink-2) !important; }
+.alert.warn { background: #fff !important; border: 1px solid var(--ink) !important; color: var(--ink) !important; }
+.alert.red  { background: var(--ink) !important; border: 1px solid var(--ink) !important; color: #fff !important; }
+
+/* progress / bars */
+.progress { background: #e9e9e9 !important; }
+.progress > span { background: var(--ink) !important; }
+.bar { background: var(--ink) !important; }
+.spark polyline { stroke: var(--ink) !important; }
+.spark polygon { fill: var(--ink) !important; }
+
+/* links / detail affordances */
+.lk { color: var(--ink) !important; border-bottom-color: rgba(10,10,10,.35) !important; }
+.lk:hover { color: #000 !important; }
+
+/* toast */
+.toast { background: var(--ink) !important; color: #fff !important; }
+.toast.ok, .toast.warn, .toast.err { background: var(--ink) !important; }
+
+/* modal chrome */
+.modal-head, .modal-foot { background: var(--panel) !important; border-color: var(--line) !important; }
+.modal-backdrop { background: rgba(10,10,10,.55) !important; }
+
+/* ---------- Motion & focus ---------- */
+.view { animation: noirIn .26s cubic-bezier(.2,.8,.2,1); }
+@keyframes noirIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible,
+.nav-item:focus-visible, .simple-kpi:focus-visible, .tool-link:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 2px; box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .view, .simple-kpi, .tool-link, .simple-row { animation: none !important; transition: none !important; }
+}

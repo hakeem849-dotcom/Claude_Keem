@@ -1,8 +1,14 @@
-# PharmaDesk — Independent Pharmacy Manager (mock app)
+# PharmaDesk — Independent Pharmacy Operator (mock app)
 
 A self-contained, browser-based mock application that demonstrates the day-to-day
 responsibilities an **independent community pharmacist** juggles. No backend, no
 build step, no dependencies — just open the file in a browser.
+
+The default experience is **Noir** — a disciplined, black-and-white operator
+console. It consolidates the work into six focused areas (Home · Dispense ·
+Patients · Inventory · PBM · Tools) over a calm monochrome design system:
+Inter typography, hairline borders, a single ink-black accent, soft shadows,
+tabular figures, and subtle motion that respects `prefers-reduced-motion`.
 
 > ⚠️ **Demonstration only.** All patients, drugs, prices, and interaction data
 > are fictional. This is not a clinical tool and must not be used for real
@@ -76,11 +82,15 @@ with offline support via a service worker.
 ## Project structure
 
 ```
-index.html        # markup + layout shell
-css/styles.css    # styling
+index.html        # Noir operator shell (the canonical app + GitHub Pages root)
+css/styles.css    # base styling
 js/data.js        # mock data + localStorage store
-js/app.js         # views, routing, and pharmacy logic
+js/app.js         # base views, routing, and pharmacy logic
+v3/v3.css         # operator-edition components
+v3/noir.css       # monochrome design system (redefines tokens, restyles surfaces)
+v3/*.js           # operator layer: hub views, router, importer, upgrades
 data/seed.json    # static copy of the seed data
+build.js          # inlines everything into dist/pharmadesk.html (single file)
 ```
 
 ## Tech
@@ -88,4 +98,4 @@ data/seed.json    # static copy of the seed data
 Vanilla HTML, CSS, and JavaScript — intentionally framework-free so it runs
 anywhere with zero setup.
 
-<!-- pages redeploy 2026-06-14T01:46:51Z -->
+<!-- pages redeploy 2026-06-19T23:45:00Z noir -->
