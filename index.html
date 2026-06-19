@@ -67,8 +67,9 @@
     </main>
   </div>
 
-  <!-- Modal & toast hosts -->
+  <!-- Modal, palette & toast hosts -->
   <div id="modalRoot"></div>
+  <div id="paletteRoot"></div>
   <div id="toastRoot" class="toast-root" role="status" aria-live="polite"></div>
 
   <script src="js/data.js"></script>
@@ -79,6 +80,7 @@
   <script src="v3/import-center.js"></script>
   <script src="v3/streamline.js"></script>
   <script src="v3/final-router.js"></script>
+  <script src="v3/command.js"></script>
   <script>
     // Register service worker (offline / installable PWA) with seamless auto-update.
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
