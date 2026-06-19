@@ -48,7 +48,7 @@
       <div class="sidebar-foot">
         <button id="resetData" class="link-btn" title="Restore demo data">↺ Reset demo data</button>
         <div class="muted small">Mock data · for demonstration only</div>
-        <div class="build-tag">PharmaDesk · v3 · refreshed Jun 2026</div>
+        <div class="build-tag">PharmaDesk · v2 · refreshed Jun 2026</div>
       </div>
     </aside>
 
@@ -57,11 +57,7 @@
       <header class="topbar">
         <h1 id="viewTitle">Dashboard</h1>
         <div class="topbar-right">
-          <button id="cmdkTrigger" class="cmdk-trigger" aria-label="Open command palette (Ctrl or Cmd + K)">
-            <svg class="cmdk-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            <span class="cmdk-label">Search or jump to…</span>
-            <kbd class="cmdk-kbd"><span class="cmdk-mod">⌘</span>K</kbd>
-          </button>
+          <input id="globalSearch" class="search" type="search" placeholder="Search patients, drugs, Rx…" />
           <button id="themeToggle" class="icon-btn" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
           <div class="user-chip">
             <span class="avatar">KA</span>
@@ -78,9 +74,7 @@
 
   <!-- Modal host -->
   <div id="modalRoot"></div>
-  <!-- Command palette host -->
-  <div id="paletteRoot"></div>
-  <div id="toastRoot" class="toast-root" role="status" aria-live="polite"></div>
+  <div id="toastRoot" class="toast-root"></div>
 
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
