@@ -512,14 +512,14 @@ html[data-theme="dark"] .lk { color: #5fd0bb; border-bottom-color: rgba(95,208,1
   --warn:   #525252;
   --ok:     #8a8a8a;
 
-  /* depth — tight, soft, monochrome */
+  /* depth — crisp: hairlines do the work, shadows stay tight & flat */
   --radius:    14px;
   --radius-sm: 10px;
-  --ring:      0 0 0 3px rgba(10,10,10,.14);
-  --shadow:    0 1px 2px rgba(0,0,0,.05), 0 8px 24px -16px rgba(0,0,0,.25);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
-  --shadow-md: 0 1px 2px rgba(0,0,0,.05), 0 14px 34px -18px rgba(0,0,0,.32);
-  --shadow-lg: 0 30px 70px -24px rgba(0,0,0,.45);
+  --ring:      0 0 0 3px rgba(10,10,10,.12);
+  --shadow:    0 1px 2px rgba(0,0,0,.04);
+  --shadow-sm: 0 1px 1px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 14px -6px rgba(0,0,0,.12);
+  --shadow-lg: 0 16px 48px -16px rgba(0,0,0,.32);
 }
 
 body { background: var(--bg) !important; color: var(--ink) !important; }
@@ -572,25 +572,23 @@ body { background: var(--bg) !important; color: var(--ink) !important; }
 .section-head h2, .section-head h3, .ops-card h2, .ops-card h3 { color: var(--ink); letter-spacing: -.01em; }
 .muted, .small, .action-note, .simple-row p, .simple-row small, .tool-link span { color: var(--muted) !important; }
 
-/* ---------- Hero: the single focal point — solid ink ---------- */
+/* ---------- Hero: crisp white, type-led; ink used only on the action ---------- */
 .simple-hero, .ops-hero, .hero {
-  background: var(--ink) !important;
-  color: #fff !important;
-  border: 1px solid var(--ink) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 20px 50px -28px rgba(0,0,0,.6) !important;
+  background: #fff !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow) !important;
 }
 .simple-hero h2, .ops-hero h2, .hero .hero-title, .hero h2 {
-  color: #fff !important; font-weight: 700; letter-spacing: -.02em;
+  color: var(--ink) !important; font-weight: 800; letter-spacing: -.03em;
 }
-.simple-hero p, .ops-hero p, .hero p, .hero .hero-sub { color: #b4b4b4 !important; }
+.simple-hero p, .ops-hero p, .hero p, .hero .hero-sub { color: var(--muted) !important; }
 .hero-glow, .hero-chips, .hero-eyebrow { display: none !important; }
-/* primary action sitting on the dark hero inverts to white */
-.simple-hero .btn.primary, .ops-hero .btn.primary, .hero .btn.primary,
-.simple-hero .btn, .ops-hero .btn {
-  background: #fff !important; color: var(--ink) !important; border-color: #fff !important;
+/* the primary action is the single crisp point of ink contrast */
+.simple-hero .btn.primary, .ops-hero .btn.primary, .hero .btn.primary {
+  background: var(--ink) !important; color: #fff !important; border-color: var(--ink) !important;
 }
-.simple-hero .btn:hover, .ops-hero .btn:hover { background: #e9e9e9 !important; }
 
 /* ---------- KPI tiles ---------- */
 .simple-kpis { gap: 14px; }
@@ -621,16 +619,15 @@ body { background: var(--bg) !important; color: var(--ink) !important; }
 
 /* ---------- Badges: monochrome, meaning kept via fill vs outline ---------- */
 .badge {
-  border-radius: 999px; font-weight: 600; box-shadow: none !important;
-  background: var(--soft) !important; color: var(--ink-2) !important;
-  border: 1px solid var(--line) !important;
+  border-radius: 999px; font-weight: 600; box-shadow: none !important; border: 0 !important;
+  background: #f2f2f2 !important; color: #1c1c1c !important;
 }
-.badge.gray  { background: var(--soft) !important; color: #5d5d5d !important; }
-.badge.blue  { background: #ededed !important; color: #2f2f2f !important; }
-.badge.green { background: #fff !important;     color: #555 !important; border-color: #d9d9d9 !important; }
-.badge.amber { background: #fff !important;     color: var(--ink) !important; border-color: var(--ink) !important; }
-.badge.red   { background: var(--ink) !important; color: #fff !important; border-color: var(--ink) !important; }
-.badge.purple{ background: #e4e4e4 !important; color: #2f2f2f !important; }
+.badge.gray  { background: #f2f2f2 !important; color: #5a5a5a !important; }
+.badge.blue  { background: #e9e9e9 !important; color: #2a2a2a !important; }
+.badge.green { background: #ededed !important; color: #444444 !important; }
+.badge.amber { background: #e0e0e0 !important; color: #1a1a1a !important; }
+.badge.red   { background: var(--ink) !important; color: #ffffff !important; }
+.badge.purple{ background: #e6e6e6 !important; color: #2a2a2a !important; }
 
 /* ---------- Buttons ---------- */
 .btn {
