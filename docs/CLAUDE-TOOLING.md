@@ -16,6 +16,12 @@ On your next Claude Code session in this repo you'll be prompted to **enable** t
 > is subject to the environment's network policy — if they don't start there, they
 > will in your **local** Claude Code. Approve them when prompted (`/mcp` to manage).
 
+### Edit-validation hook — `.claude/settings.json` + `.claude/hooks/check-edit.js`
+After Claude edits a file, it auto-validates it: `node --check` on `*.js` and
+`JSON.parse` on `*.json`. Errors are fed straight back so they're fixed
+immediately. (Dependency-free by design — this repo avoids a formatter/linter
+toolchain, so this is a syntax/JSON guard, not a reformatter.)
+
 ### Skill — `.claude/skills/ui-ux-design/`
 Senior-designer UI/UX pass (hierarchy, type scale, spacing, contrast/AA,
 states, motion). Auto-invoked on user-facing UI work.
@@ -42,15 +48,12 @@ states, motion). Auto-invoked on user-facing UI work.
 ### Already built in (no install)
 `/code-review` and `/security-review` ship with Claude Code — use them before merges.
 
-### Optional: web-search MCP (needs a free API key)
-Add to `.mcp.json` and set `BRAVE_API_KEY`:
-```json
-"brave-search": {
-  "command": "npx",
-  "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-  "env": { "BRAVE_API_KEY": "your-key" }
-}
-```
+### Web-search MCP — already in `.mcp.json`, just needs a free key
+The `brave-search` server is configured to read `${BRAVE_API_KEY}` from your
+environment. Get a free key at https://brave.com/search/api/ and export it
+(e.g. add `BRAVE_API_KEY=...` to your shell profile or the environment's secrets),
+then enable the server when prompted. Without the key it simply won't start —
+decline it until the key is set.
 
 ## Notes
 - Verify each plugin/server name in `/plugin` and `/mcp` before trusting it — the
