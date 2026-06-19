@@ -37,19 +37,40 @@ function toast(msg, type = "ok") {
 }
 
 /* ---------- modal ---------- */
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 function openModal({ title, body, footer, size = "" }) {
   const root = $("#modalRoot");
+  const lastFocused = document.activeElement;
   root.innerHTML = `
     <div class="modal-backdrop" id="backdrop">
-      <div class="modal ${size}" role="dialog" aria-modal="true">
-        <div class="modal-head"><h3>${title}</h3><button class="x-btn" id="modalX">×</button></div>
+      <div class="modal ${size}" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+        <div class="modal-head"><h3>${title}</h3><button class="x-btn" id="modalX" aria-label="Close">×</button></div>
         <div class="modal-body">${body}</div>
         ${footer ? `<div class="modal-foot">${footer}</div>` : ""}
       </div>
     </div>`;
-  const close = () => { root.innerHTML = ""; };
+  const dialog = $(".modal", root);
+  const close = () => {
+    root.innerHTML = "";
+    dialog.removeEventListener("keydown", onKey);
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  };
+  // focus trap: keep Tab within the dialog; Esc closes
+  const onKey = e => {
+    if (e.key === "Escape") { e.stopPropagation(); close(); return; }
+    if (e.key !== "Tab") return;
+    const items = $$(FOCUSABLE, dialog);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  dialog.addEventListener("keydown", onKey);
   $("#modalX").onclick = close;
   $("#backdrop").onclick = e => { if (e.target.id === "backdrop") close(); };
+  // move focus into the dialog (first field if present, else the close button)
+  const target = $(FOCUSABLE, $(".modal-body", root)) || $("#modalX");
+  if (target && target.focus) setTimeout(() => target.focus(), 0);
   return { close, root };
 }
 
@@ -276,6 +297,40 @@ function sparkline(data, color) {
     <polygon points="${area}" fill="${stroke}" opacity="0.08"/>
     <polyline points="${pts.join(" ")}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
+}
+
+// Donut / ring chart from [{label, value}] segments. Pure string output so it
+// renders identically in the browser and the headless smoke tests.
+const DONUT_COLORS = ["var(--brand)", "var(--accent)", "var(--warn)", "#6635c9", "var(--ok)", "var(--danger)"];
+function donutChart(segments, { centerLabel = "", size = 140 } = {}) {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  const r = size / 2 - 12, cx = size / 2, cy = size / 2, C = 2 * Math.PI * r;
+  let offset = 0;
+  const arcs = segments.map((s, i) => {
+    const frac = s.value / total;
+    const color = DONUT_COLORS[i % DONUT_COLORS.length];
+    const dash = `${(frac * C).toFixed(2)} ${(C - frac * C).toFixed(2)}`;
+    const arc = `<circle class="donut-seg" cx="${cx}" cy="${cy}" r="${r}" fill="none"
+      stroke="${color}" stroke-width="16" stroke-dasharray="${dash}"
+      stroke-dashoffset="${(-offset * C).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"
+      stroke-linecap="butt"><title>${escapeHtml(s.label)}: ${Math.round(frac * 100)}%</title></circle>`;
+    offset += frac;
+    return arc;
+  }).join("");
+  const legend = segments.map((s, i) => {
+    const pct = Math.round((s.value / total) * 100);
+    return `<div class="dl-row"><span class="dl-swatch" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></span>
+      <span class="dl-name">${escapeHtml(s.label)}</span><span class="dl-val">${s.value} · ${pct}%</span></div>`;
+  }).join("");
+  return `<div class="donut-wrap">
+    <svg class="donut" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${escapeHtml(centerLabel)} distribution">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line)" stroke-width="16"/>
+      ${arcs}
+      <text class="donut-center-val" x="${cx}" y="${cy - 2}" text-anchor="middle" dominant-baseline="middle">${total}</text>
+      <text class="donut-center-lbl" x="${cx}" y="${cy + 16}" text-anchor="middle">${escapeHtml(centerLabel)}</text>
+    </svg>
+    <div class="donut-legend">${legend}</div>
+  </div>`;
 }
 
 // Count-up animation for KPI values (respects reduced-motion). Parses prefix
@@ -805,11 +860,7 @@ Views.reports = () => {
       </div>
       <div class="card">
         <div class="section-head"><h2>Payer mix</h2></div>
-        ${Object.entries(payers).map(([k, v]) => {
-          const pct = Math.round(v / Store.patients.length * 100);
-          return `<div style="margin-bottom:12px"><div class="spread"><span>${k}</span><span class="muted">${v} patients · ${pct}%</span></div>
-            <div class="progress" style="margin-top:4px"><span style="width:${pct}%"></span></div></div>`;
-        }).join("")}
+        ${donutChart(Object.entries(payers).map(([label, value]) => ({ label, value })), { centerLabel: "patients" })}
       </div>
     </div>
     <div class="card" style="margin-top:16px">
@@ -1534,6 +1585,181 @@ function packetAction(kind) {
 }
 
 /* ============================================================
+   Command palette — universal search + navigation (⌘K / Ctrl+K)
+   ============================================================ */
+const VIEW_DEFS = [
+  ["dashboard", "📊", "Dashboard"], ["prescriptions", "℞", "Dispensing Queue"],
+  ["patients", "👤", "Patients"], ["inventory", "📦", "Inventory"],
+  ["interactions", "⚠️", "Interaction Checker"], ["claims", "💳", "Claims & Billing"],
+  ["reimbursement", "💸", "Reimbursement / PBM"], ["refills", "🔁", "Refills & Adherence"],
+  ["controlled", "🔒", "Controlled Log"], ["immunizations", "💉", "Immunizations"],
+  ["audits", "📋", "Audit Center"], ["compliance", "📂", "Compliance"],
+  ["reportcenter", "🧾", "Report Center"], ["reports", "📈", "Business Reports"]
+];
+
+// Build the searchable index fresh on each open so it reflects live data.
+function buildPaletteIndex() {
+  const items = [];
+  VIEW_DEFS.forEach(([view, icon, label]) =>
+    items.push({ group: "Go to", icon, title: label, sub: "Navigate", run: () => navigate(view) }));
+
+  items.push(
+    { group: "Actions", icon: "➕", title: "New prescription", sub: "Add an Rx to the queue", run: () => { navigate("prescriptions"); newRxForm(); } },
+    { group: "Actions", icon: "💉", title: "Record immunization", sub: "Log a vaccine administration", run: () => { navigate("immunizations"); newImmForm(); } },
+    { group: "Actions", icon: "🌓", title: "Toggle dark mode", sub: "Switch light / dark theme", run: () => toggleTheme() },
+    { group: "Actions", icon: "↺", title: "Reset demo data", sub: "Restore the original dataset", run: () => { if (confirm("Restore all demo data to its original state? This clears your changes.")) { Store.reset(); toast("Demo data restored"); render(); } } }
+  );
+
+  Store.patients.forEach(p => items.push({
+    group: "Patients", icon: "👤", title: `${p.first} ${p.last}`,
+    sub: `${p.id} · ${age(p.dob)} y/o · ${p.insurance}`, run: () => { navigate("patients"); patientChart(p.id); }
+  }));
+  Store.inventory.forEach(d => items.push({
+    group: "Inventory", icon: "💊", title: `${d.name} ${d.strength}`,
+    sub: `${d.class} · NDC ${d.ndc}${d.schedule ? ` · C-${d.schedule}` : ""}`, run: () => { navigate("inventory"); drugDetail(d.id); }
+  }));
+  Store.prescriptions.forEach(r => {
+    const p = Store.findPatient(r.patientId), d = Store.findDrug(r.drugId);
+    items.push({ group: "Prescriptions", icon: "℞", title: `${r.id} — ${d ? d.name : ""}`,
+      sub: `${p ? p.first + " " + p.last : ""} · ${STATUS_META[r.status] ? STATUS_META[r.status].label : r.status}`,
+      run: () => { navigate("prescriptions"); rxDetails(r.id); } });
+  });
+  Store.claims.forEach(c => items.push({
+    group: "Claims", icon: "💳", title: `${c.id} — ${c.payer}`,
+    sub: `${c.status}${c.rejectCode ? " · " + c.rejectCode : ""}`, run: () => { navigate("claims"); claimDetail(c.id); }
+  }));
+  Store.audits.forEach(a => items.push({
+    group: "Audits", icon: "📋", title: `${a.id} — ${a.pbm}`,
+    sub: `${a.type} · ${a.status}`, run: () => { navigate("audits"); auditDetail(a.id); }
+  }));
+  Store.credentials.forEach(c => items.push({
+    group: "Compliance", icon: "📂", title: c.name,
+    sub: `${c.authority} · expires ${fmtDate(c.expires)}`, run: () => { navigate("compliance"); credentialDetail(c.id); }
+  }));
+  return items;
+}
+
+function scoreItem(item, terms) {
+  const title = item.title.toLowerCase(), sub = (item.sub || "").toLowerCase();
+  let score = 0;
+  for (const t of terms) {
+    if (title.startsWith(t)) score += 100;
+    else if (title.includes(t)) score += 50;
+    else if (sub.includes(t)) score += 20;
+    else return -1; // every term must match somewhere
+  }
+  return score;
+}
+
+function highlight(text, terms) {
+  let out = escapeHtml(text);
+  // highlight the longest matching term to keep markup simple & safe
+  const t = [...terms].sort((a, b) => b.length - a.length)[0];
+  if (t) {
+    const i = out.toLowerCase().indexOf(t);
+    if (i >= 0) out = out.slice(0, i) + `<span class="palette-mark">` + out.slice(i, i + t.length) + `</span>` + out.slice(i + t.length);
+  }
+  return out;
+}
+
+let paletteState = null;
+function openPalette() {
+  if (paletteState) return;
+  const root = $("#paletteRoot");
+  const lastFocused = document.activeElement;
+  const index = buildPaletteIndex();
+  root.innerHTML = `
+    <div class="palette-backdrop" id="paletteBackdrop">
+      <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+        <div class="palette-search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="paletteInput" type="text" placeholder="Search patients, drugs, Rx, claims — or jump to a page…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="paletteResults" aria-autocomplete="list" />
+        </div>
+        <div class="palette-results" id="paletteResults" role="listbox"></div>
+        <div class="palette-foot">
+          <span class="pf-hint"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+          <span class="pf-hint"><kbd>↵</kbd> open</span>
+          <span class="pf-hint"><kbd>esc</kbd> close</span>
+        </div>
+      </div>
+    </div>`;
+  const input = $("#paletteInput"), results = $("#paletteResults");
+  let filtered = [], selected = 0;
+
+  const close = () => {
+    root.innerHTML = ""; paletteState = null;
+    document.removeEventListener("keydown", onKey, true);
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  };
+
+  function update() {
+    const q = input.value.trim().toLowerCase();
+    const terms = q ? q.split(/\s+/) : [];
+    if (!terms.length) {
+      // default: actions + navigation only, so the palette is useful when empty
+      filtered = index.filter(it => it.group === "Go to" || it.group === "Actions");
+    } else {
+      filtered = index.map(it => ({ it, s: scoreItem(it, terms) }))
+        .filter(x => x.s >= 0).sort((a, b) => b.s - a.s).slice(0, 40).map(x => x.it);
+    }
+    selected = 0;
+    renderResults(terms);
+  }
+
+  function renderResults(terms) {
+    if (!filtered.length) {
+      results.innerHTML = `<div class="palette-empty">No matches for “${escapeHtml(input.value)}”.</div>`;
+      return;
+    }
+    let html = "", lastGroup = null;
+    filtered.forEach((it, i) => {
+      if (it.group !== lastGroup) { html += `<div class="palette-group-label">${escapeHtml(it.group)}</div>`; lastGroup = it.group; }
+      html += `<div class="palette-item" role="option" id="pi-${i}" data-i="${i}" aria-selected="${i === selected}">
+        <span class="pi-ico">${it.icon}</span>
+        <span class="pi-text"><span class="pi-title">${highlight(it.title, terms)}</span>
+        ${it.sub ? `<span class="pi-sub">${highlight(it.sub, terms)}</span>` : ""}</span>
+        <span class="pi-hint">↵</span></div>`;
+    });
+    results.innerHTML = html;
+    $$(".palette-item", results).forEach(el => {
+      el.onmouseenter = () => setSelected(+el.dataset.i);
+      el.onclick = () => run(+el.dataset.i);
+    });
+    scrollSelectedIntoView();
+  }
+
+  function setSelected(i) {
+    selected = i;
+    $$(".palette-item", results).forEach(el => el.setAttribute("aria-selected", +el.dataset.i === selected));
+    scrollSelectedIntoView();
+  }
+  function scrollSelectedIntoView() {
+    const el = $(`#pi-${selected}`, results);
+    if (el) el.scrollIntoView({ block: "nearest" });
+  }
+  function run(i) {
+    const it = filtered[i];
+    if (!it) return;
+    close();
+    it.run();
+  }
+
+  const onKey = e => {
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); if (filtered.length) setSelected((selected + 1) % filtered.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); if (filtered.length) setSelected((selected - 1 + filtered.length) % filtered.length); }
+    else if (e.key === "Enter") { e.preventDefault(); run(selected); }
+  };
+
+  document.addEventListener("keydown", onKey, true);
+  input.addEventListener("input", update);
+  $("#paletteBackdrop").onclick = e => { if (e.target.id === "paletteBackdrop") close(); };
+  paletteState = { close };
+  update();
+  setTimeout(() => input.focus(), 0);
+}
+
+/* ============================================================
    Router & event wiring
    ============================================================ */
 let currentView = "dashboard";
@@ -1626,17 +1852,22 @@ function wireChrome() {
       Store.reset(); toast("Demo data restored"); render();
     }
   };
-  $("#globalSearch").oninput = e => {
-    const q = e.target.value.trim().toLowerCase();
-    if (!q) return;
-    // naive: if matches a patient name go to patients, drug -> inventory
-    if (Store.patients.some(p => (p.first + " " + p.last).toLowerCase().includes(q))) {
-      navigate("patients"); $("#view").innerHTML = Views.patients(q); wireView();
-    } else if (Store.inventory.some(d => d.name.toLowerCase().includes(q))) {
-      navigate("inventory"); $("#view").innerHTML = Views.inventory(q); wireView();
-    }
-  };
-  document.addEventListener("keydown", e => { if (e.key === "Escape") $("#modalRoot").innerHTML = ""; });
+  const trigger = $("#cmdkTrigger");
+  if (trigger) trigger.onclick = openPalette;
+  // reflect the platform modifier (⌘ on macOS, Ctrl elsewhere) in the hint chip
+  const modEl = $(".cmdk-mod");
+  const nav = typeof navigator !== "undefined" ? navigator : {};
+  const isMac = /Mac|iPhone|iPad/.test(nav.platform || nav.userAgent || "");
+  if (modEl && !isMac) modEl.textContent = "Ctrl ";
+
+  document.addEventListener("keydown", e => {
+    // ⌘K / Ctrl+K opens the palette anywhere
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); return; }
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "");
+    // "/" focuses search when not already typing
+    if (e.key === "/" && !typing && !paletteState) { e.preventDefault(); openPalette(); return; }
+    if (e.key === "Escape" && !paletteState) $("#modalRoot").innerHTML = "";
+  });
 }
 
 /* boot */

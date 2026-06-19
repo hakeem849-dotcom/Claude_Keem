@@ -37,6 +37,20 @@ build step, no dependencies — just open the file in a browser.
 - **Click-into details everywhere** — drugs, claims, audits, and credentials open
   detail modals; dashboard KPIs are clickable shortcuts into their module.
 
+### Productivity & design
+- **Command palette (`⌘K` / `Ctrl K`, or `/`)** — one keyboard-driven search box
+  jumps to any page, runs quick actions (new Rx, record immunization, toggle theme,
+  reset data), and finds any patient, drug, prescription, claim, audit, or
+  credential, opening it straight from the results. Arrow keys + `Enter` to act,
+  `Esc` to dismiss.
+- **Considered visuals** — an SVG donut chart for payer mix, KPI sparklines with
+  count-up animation, and staggered card reveals (all respecting
+  `prefers-reduced-motion`).
+- **Accessible by default** — focus-trapped modals that restore focus on close,
+  visible focus rings on every control, `aria-live` toasts, and full keyboard
+  navigation.
+- **Light & dark themes** with a single click, persisted across sessions.
+
 ## Running it
 
 ```bash
@@ -88,4 +102,4 @@ data/seed.json    # static copy of the seed data
 Vanilla HTML, CSS, and JavaScript — intentionally framework-free so it runs
 anywhere with zero setup.
 
-<!-- pages redeploy 2026-06-14T01:46:51Z -->
+<!-- pages redeploy 2026-06-19T00:00:00Z -->
