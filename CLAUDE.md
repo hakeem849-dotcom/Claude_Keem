@@ -11,6 +11,11 @@ briefing** before doing anything else. The briefing must cover:
 Finish the briefing even if it means leaving the current edit incomplete —
 a clean handover takes priority over one more change.
 
+## Always share the live link
+When reporting any update, **always include the live GitHub Pages link** so it
+can be tried immediately: https://hakeem849-dotcom.github.io/Claude_Keem/
+(After a deploy, note it may take ~1 min and to hard-refresh.)
+
 ## What this project is
 A dependency-free, browser-based mock pharmacy app. There is **one** app:
 the black-and-white **Noir operator edition**, served from the repo root and
