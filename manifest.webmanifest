@@ -1,13 +1,13 @@
 {
-  "name": "PharmaDesk — Independent Pharmacy Manager",
+  "name": "PharmaDesk — Independent Pharmacy Operator",
   "short_name": "PharmaDesk",
-  "description": "Mock management app covering the day-to-day responsibilities of an independent community pharmacist.",
+  "description": "A focused black-and-white operations console for an independent community pharmacy. Demonstration only.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0c2a26",
-  "theme_color": "#0d7d6e",
+  "background_color": "#ffffff",
+  "theme_color": "#0a0a0a",
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }

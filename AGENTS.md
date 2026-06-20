@@ -143,12 +143,11 @@ Before sending Hakeem any app URL after a code change, the agent must verify the
 Required checklist:
 1. Confirm the changed file exists on `main` with `GitHub.fetch_file` or equivalent.
 2. Confirm the app entry file exists on `main`:
-   - `app.html`
-   - and, if relevant, `app/index.html` or `v3/index.html`.
+   - `index.html` (the canonical Noir operator app + GitHub Pages root).
 3. Do not send only the GitHub Pages URL unless the agent has verified it loads after the update. GitHub Pages can lag, fail, or cache old JavaScript.
 4. Always include at least one fallback URL that reads directly from the current repo state:
-   - `https://raw.githack.com/hakeem849-dotcom/Claude_Keem/main/app.html`
-   - `https://cdn.jsdelivr.net/gh/hakeem849-dotcom/Claude_Keem@main/app.html`
+   - `https://raw.githack.com/hakeem849-dotcom/Claude_Keem/main/index.html`
+   - `https://cdn.jsdelivr.net/gh/hakeem849-dotcom/Claude_Keem@main/index.html`
 5. If GitHub Pages has not been verified live, say that explicitly and label it as possibly stale.
 6. Use a cache-busted URL when appropriate, e.g. append `?v=<short-commit-sha>` to the Pages URL.
 7. If a service worker or cached asset changed, bump the `CACHE` value in `sw.js`.

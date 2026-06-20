@@ -67,6 +67,8 @@ body { background: var(--bg) !important; color: var(--ink) !important; }
 }
 .nav-item.active::before { display: none !important; }
 .ni-ico { opacity: .9; filter: grayscale(1); }
+.ni-svg { display: inline-block; vertical-align: middle; }
+.nav-item.active .ni-svg { stroke: #fff; }
 .sidebar-foot { border-top: 1px solid var(--line) !important; }
 .link-btn { color: var(--muted) !important; }
 .link-btn:hover { color: var(--ink) !important; }
