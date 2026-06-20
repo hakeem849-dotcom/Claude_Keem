@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- Noir is a single, intentional light theme. Force it before any script or
+       paint so a stale "dark" preference from an earlier build can't apply the
+       base dark-theme rules (which would collide with the noir palette). -->
+  <script>
+    (function () {
+      try { localStorage.setItem("pharmadesk.theme", "light"); } catch (e) {}
+      document.documentElement.setAttribute("data-theme", "light");
+    })();
+  </script>
   <title>PharmaDesk — Independent Pharmacy Operator</title>
   <meta name="description" content="A focused black-and-white operations console for an independent community pharmacy. Demonstration only." />
   <meta name="theme-color" content="#0a0a0a" />
