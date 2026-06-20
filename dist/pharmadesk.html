@@ -3916,6 +3916,30 @@ try {
       <div class="ops-card" style="margin-top:16px"><div class="section-head"><h2>Detailed views</h2></div><div class="ops-grid-3">${LEGACY_LINKS.map(x => `<button class="tool-link" data-go="${x.view}"><b>${esc(x.label)}</b><span>${esc(x.desc)}</span></button>`).join("")}</div></div>`;
   };
 
+  Views.pbmhub = () => {
+    const paid = Store.claims.filter(c => c.status !== "rejected");
+    const econ = paid.map(c => ({ c, e: safeEco(c) }));
+    const net = econ.reduce((s, x) => s + x.e.net, 0);
+    const dirTotal = econ.reduce((s, x) => s + (x.e.dirFee || 0), 0);
+    const under = econ.filter(x => x.e.underwater);
+    const rejects = rejectedClaims();
+    const appeals = Store.claims.filter(c => c.appealStatus === "submitted");
+    const appealable = Store.claims.map(c => ({ c, e: safeEco(c) })).filter(x => x.e.underwater || x.e.macEligible);
+    return `<div class="simple-hero"><div><h2>PBM & reimbursement</h2><p>The economics that decide whether a script makes money: net after DIR clawbacks, claims dispensed below cost, rejections, and the appeals that recover them.</p></div><button class="btn" data-go="claimsops">Claims desk</button></div>
+      <div class="simple-kpis">
+        <button class="simple-kpi" data-go="reimbursement"><span>${dollars(net)}</span><b>Net after cost + DIR</b></button>
+        <button class="simple-kpi" data-go="reimbursement"><span>${under.length}</span><b>Underwater claims</b></button>
+        <button class="simple-kpi" data-go="claimsops"><span>${rejects.length}</span><b>Rejected claims</b></button>
+        <button class="simple-kpi" data-go="reimbursement"><span>${appeals.length}</span><b>Open MAC appeals</b></button>
+      </div>
+      <div class="simple-layout">
+        <section class="ops-card"><div class="section-head"><h2>Appealable claims</h2>${riskBadge(`${appealable.length} claim(s)`, appealable.length ? "amber" : "green")}</div>
+          ${appealable.length ? `<div class="table-wrap"><table><thead><tr><th>Drug / Payer</th><th>Reimbursed</th><th>Cost</th><th>DIR</th><th>Net</th></tr></thead><tbody>${appealable.map(({ c, e }) => `<tr><td><b>${e.drug ? esc(e.drug.name + " " + e.drug.strength) : esc(c.rxId)}</b><div class="muted small">${esc(c.payer)}</div></td><td>${dollars(e.reimbursement)}</td><td>${dollars(e.acquisitionCost)}</td><td>${dollars(-(e.dirFee || 0))}</td><td>${riskBadge(dollars(e.net), e.net < 0 ? "red" : "green")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No claims are underwater or below cost right now.</div>`}
+        </section>
+        <aside class="ops-card"><h2>PBM brief</h2><p class="muted">A claim can read “paid” yet lose money once a DIR fee is clawed back months later. Resolve rejected claims first, then file MAC appeals on anything reimbursed below acquisition cost.</p><div class="chip-row">${riskBadge(`${dollars(dirTotal)} DIR drag`, dirTotal ? "amber" : "gray")}${riskBadge(`${rejects.length} rejected`, rejects.length ? "red" : "green")}${riskBadge(`${appeals.length} appeal(s)`, appeals.length ? "blue" : "gray")}</div><button class="btn" data-go="reimbursement" style="margin-top:12px">Full reimbursement detail</button></aside>
+      </div>`;
+  };
+
   function injectStyles() {
     if (document.getElementById("streamlineStyles")) return;
     const style = document.createElement("style");
