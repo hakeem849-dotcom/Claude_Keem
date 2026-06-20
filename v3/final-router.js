@@ -72,7 +72,8 @@
     drawNav(requested);
     const l = label(requested);
     const title = document.getElementById("viewTitle");
-    if (title) title.textContent = `${l[1]} ${l[2]}`;
+    // icon may be an SVG string (e.g. the Tools wrench) — render as markup, not text
+    if (title) title.innerHTML = `${l[1]} <span>${esc(l[2])}</span>`;
     window.scrollTo({ top: 0, behavior: "smooth" });
     return true;
   }
