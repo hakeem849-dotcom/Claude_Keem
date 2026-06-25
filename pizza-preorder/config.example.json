@@ -1,0 +1,26 @@
+{
+  "storeUrl": "https://www.hotplate.com/akpizza",
+
+  "dropOpensAt": "2026-07-04T11:00:00-07:00",
+  "armSecondsBefore": 20,
+  "reloadIntervalMs": 350,
+
+  "items": [
+    { "name": "Pepperoni", "quantity": 1 },
+    { "name": "Margherita", "quantity": 1 }
+  ],
+
+  "pickup": {
+    "preferredDay": "",
+    "preferredTime": "",
+    "fallbackToFirstAvailable": true
+  },
+
+  "autoSubmit": false,
+
+  "headless": false,
+  "browserChannel": "chrome",
+  "executablePath": "",
+  "slowMoMs": 0,
+  "screenshotDir": "runs"
+}
