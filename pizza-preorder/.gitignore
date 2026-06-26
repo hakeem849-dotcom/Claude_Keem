@@ -2,3 +2,9 @@ node_modules/
 .profile/
 runs/
 config.json
+
+# cloud runtime artifacts
+cloud/profile/
+cloud/runs/
+cloud/config.json
+cloud/run.log

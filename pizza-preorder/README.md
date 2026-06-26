@@ -10,6 +10,11 @@ It's a normal Playwright automation that **runs on your own computer**, drives a
 real Chrome window you can watch, and (by default) stops right before payment so
 you press the final button yourself.
 
+> **No computer / phone only?** See [`cloud/README.md`](cloud/README.md) to run
+> it on a small always-on server: you log in once via a remote desktop in your
+> phone's browser, schedule it for drop time, and get a push notification (with
+> a screenshot) on your phone via [ntfy](https://ntfy.sh) when it's done.
+
 > Use responsibly: this just automates the same clicks you'd make as a regular
 > customer ordering one meal for yourself. Don't run many copies, scalp, or
 > resell — that's against Hotplate's terms and unfair to others in line.
@@ -62,6 +67,7 @@ cart timer, so you have time. Set `autoSubmit: true` to let it click pay too.
 | `pickup.preferredDay` / `preferredTime` | Text of the slot to pick (optional). |
 | `pickup.fallbackToFirstAvailable` | If `true`, grabs the first open slot when no preference matches. |
 | `autoSubmit` | `true` clicks the final pay button; `false` stops just before it. |
+| `notify.ntfyTopic` | Optional. A unique [ntfy](https://ntfy.sh) topic to push phone alerts + screenshots (open detected, in cart, ordered). Subscribe to the same topic in the ntfy app. |
 | `headless` | Keep `false` so you can watch and step in. |
 | `browserChannel` / `executablePath` | `"chrome"` uses installed Chrome; or point at a specific binary. |
 | `slowMoMs` | Slows actions (debugging only — keep `0` for speed). |

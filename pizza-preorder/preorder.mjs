@@ -14,6 +14,8 @@ import {
   waitUntil,
   firstVisible,
   snap,
+  notify,
+  notifyImage,
   log,
   sleep,
 } from "./lib.mjs";
@@ -69,7 +71,9 @@ while (Date.now() < hardDeadline) {
 if (!open) {
   log("❌ Never saw add-to-cart controls. The drop may not be open, the page");
   log("   markup may have changed, or you may be in a queue. Check ./runs.");
-  await snap(page, cfg, "not-open");
+  const f = await snap(page, cfg, "not-open");
+  await notify(cfg, "Couldn't find items to add — drop may not be open, you may be queued, or the page changed. Check it manually.", { title: "🍕 Pizza bot — needs you", priority: "high" });
+  if (f) await notifyImage(cfg, f, "What the bot saw");
   if (!cfg.headless) {
     log("Leaving the browser open so you can finish manually. Ctrl+C to quit.");
     await sleep(10 * 60 * 1000);
@@ -80,6 +84,7 @@ if (!open) {
 
 log("✅ Drop is open — adding items.");
 await snap(page, cfg, "open");
+await notify(cfg, "Drop is open — grabbing your items now…", { priority: "high" });
 
 // ---- 3. Add each configured item to the cart ------------------------------
 async function setQuantity(scope, qty) {
@@ -219,17 +224,24 @@ const placeBtn = await firstVisible(
 if (!placeBtn) {
   log("ℹ️  Reached checkout but couldn't find a place-order button automatically.");
   log("   Your items should be in the cart (5-min timer) — finish in the window.");
+  const f = await snap(page, cfg, "at-checkout");
+  await notify(cfg, "Items are in your cart but I couldn't find the pay button. Open the page and finish before the cart timer runs out!", { title: "🍕 Pizza bot — finish checkout", priority: "urgent" });
+  if (f) await notifyImage(cfg, f, "Checkout page");
 } else if (DRY_RUN || !cfg.autoSubmit) {
   log("🛑 Stopping before payment (dry-run or autoSubmit=false).");
   log("   Items are in your cart. Click the final button yourself in the browser.");
   await placeBtn.scrollIntoViewIfNeeded().catch(() => {});
-  await snap(page, cfg, "ready-to-pay");
+  const f = await snap(page, cfg, "ready-to-pay");
+  await notify(cfg, "Items in cart, ready to pay. Open the page and tap the final button (you have ~5 min).", { title: "🍕 Pizza bot — tap to pay", priority: "urgent" });
+  if (f) await notifyImage(cfg, f, "Ready to pay");
 } else {
   log("💳 Submitting the order (autoSubmit=true)…");
   await placeBtn.click().catch(() => {});
   await sleep(3000);
-  await snap(page, cfg, "submitted");
+  const f = await snap(page, cfg, "submitted");
   log("✅ Order submitted — verify the confirmation in the browser / your email.");
+  await notify(cfg, "Order submitted! Check your email/texts for the confirmation. 🎉", { title: "🍕 Pizza bot — ordered!", priority: "urgent" });
+  if (f) await notifyImage(cfg, f, "Order confirmation");
 }
 
 // Keep the (headed) browser open so you can finish or confirm manually.

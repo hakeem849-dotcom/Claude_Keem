@@ -1,0 +1,28 @@
+# Two services share the same logged-in browser profile (the ./profile volume):
+#   login    – one-time: opens a desktop (noVNC) so you can sign in from your phone
+#   preorder – drop day: runs headless and races the drop, pinging your phone
+#
+# Build context is the parent dir so the image can copy the app code.
+services:
+  login:
+    build:
+      context: ..
+      dockerfile: cloud/Dockerfile
+    command: ["/usr/local/bin/start-desktop.sh"]
+    ports:
+      - "6080:6080" # open http://YOUR_SERVER_IP:6080/vnc.html on your phone
+    volumes:
+      - ./profile:/app/.profile
+      - ./config.json:/app/config.json:ro
+      - ./runs:/app/runs
+    stop_grace_period: 20s # time for the session to flush on `compose stop`
+
+  preorder:
+    build:
+      context: ..
+      dockerfile: cloud/Dockerfile
+    command: ["node", "preorder.mjs"]
+    volumes:
+      - ./profile:/app/.profile
+      - ./config.json:/app/config.json:ro
+      - ./runs:/app/runs

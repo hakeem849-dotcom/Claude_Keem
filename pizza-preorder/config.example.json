@@ -18,6 +18,11 @@
 
   "autoSubmit": false,
 
+  "notify": {
+    "ntfyTopic": "",
+    "ntfyServer": "https://ntfy.sh"
+  },
+
   "headless": false,
   "browserChannel": "chrome",
   "executablePath": "",

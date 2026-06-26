@@ -58,14 +58,56 @@ export async function snap(page, cfg, label) {
     const file = join(shotDir(cfg), name);
     await page.screenshot({ path: file, fullPage: false });
     log(`  📸 ${name}`);
+    return file;
   } catch {
     /* best effort */
+    return null;
   }
 }
 
 export function log(...args) {
   const t = new Date().toISOString().slice(11, 23);
   console.log(`[${t}]`, ...args);
+}
+
+// Push a phone notification via ntfy.sh (free, no account: install the ntfy app,
+// subscribe to your topic). Configure with notify.ntfyTopic in config.json.
+// No-op if not configured, and never throws — notifications must not slow or
+// break the actual ordering.
+export async function notify(cfg, message, { title = "🍕 Pizza bot", priority = "default" } = {}) {
+  const topic = cfg?.notify?.ntfyTopic;
+  if (!topic) return;
+  const base = cfg.notify.ntfyServer || "https://ntfy.sh";
+  try {
+    await fetch(`${base}/${topic}`, {
+      method: "POST",
+      headers: { Title: title, Priority: priority, Tags: "pizza" },
+      body: message,
+    });
+  } catch {
+    /* best effort */
+  }
+}
+
+// Push an image (e.g. a screenshot file) to the same ntfy topic.
+export async function notifyImage(cfg, filePath, caption = "") {
+  const topic = cfg?.notify?.ntfyTopic;
+  if (!topic) return;
+  const base = cfg.notify.ntfyServer || "https://ntfy.sh";
+  try {
+    const buf = readFileSync(filePath);
+    await fetch(`${base}/${topic}`, {
+      method: "PUT",
+      headers: {
+        Filename: "screenshot.png",
+        Title: "🍕 Pizza bot",
+        Message: caption,
+      },
+      body: buf,
+    });
+  } catch {
+    /* best effort */
+  }
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
